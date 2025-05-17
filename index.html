@@ -14,6 +14,40 @@
   <ul id="planning"></ul>
   <h2>🎯 Objectifs de dons</h2>
   <ul id="donations"></ul>
-  <script src="script.js"></script>
+
+  <script>
+    function loadPlanning() {
+      fetch('/stream24h.json')
+        .then(res => res.json())
+        .then(data => {
+          const ul = document.getElementById('planning');
+          ul.innerHTML = '';
+          data.planning.forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = `${item.time} — ${item.label}`;
+            if (item.checked) li.classList.add('checked');
+            ul.appendChild(li);
+          });
+          const ul2 = document.getElementById('donations');
+          ul2.innerHTML = '';
+          data.donation_goals.forEach(goal => {
+            const li = document.createElement('li');
+            li.textContent = `${goal.amount}€ : ${goal.challenge}`;
+            ul2.appendChild(li);
+          });
+        });
+    }
+
+    loadPlanning();
+
+    const ws = new WebSocket(`ws://${location.host}`);
+    ws.onmessage = (msg) => {
+  if (msg.data === 'update') loadPlanning();
+  else if (msg.data.startsWith('effect:')) triggerVisual(msg.data.split(':')[1]);
+  else if (msg.data.startsWith('message:')) showMessage(msg.data.split(':')[1]);
+};
+
+
+  </script>
 </body>
 </html>

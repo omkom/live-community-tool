@@ -1,27 +1,84 @@
 {
   "planning": [
-    { "time": "09:00", "label": "Sport & Talk", "checked": false },
-    { "time": "10:30", "label": "Cuisine MIDI", "checked": false },
-    { "time": "12:00", "label": "Création Communautaire 1", "checked": false },
-    { "time": "14:00", "label": "Podcast musical (tooPrettyFlacko)", "checked": false },
-    { "time": "15:30", "label": "Jeu solo narratif", "checked": false },
-    { "time": "17:00", "label": "Jeux avec viewers", "checked": false },
-    { "time": "18:30", "label": "Dîner & Talk", "checked": false },
-    { "time": "20:00", "label": "Radio Libre (Akanedothis)", "checked": false },
-    { "time": "22:00", "label": "Défi communautaire", "checked": false },
-    { "time": "23:30", "label": "Discussion nocturne", "checked": false },
-    { "time": "01:00", "label": "SIESTE 1", "checked": false },
-    { "time": "02:30", "label": "Jeu solo calme", "checked": false },
-    { "time": "04:00", "label": "Création Communautaire 2", "checked": false },
-    { "time": "05:30", "label": "SIESTE 2", "checked": false },
-    { "time": "07:00", "label": "Réveil en douceur", "checked": false },
-    { "time": "08:30", "label": "Clôture du stream", "checked": false }
-  ],
-  "donation_goals": [
-    { "amount": 100, "challenge": "Danse improvisée" },
-    { "amount": 250, "challenge": "Lecture dramatique" },
-    { "amount": 500, "challenge": "Voice acting viewer" },
-    { "amount": 750, "challenge": "Anecdote perso" },
-    { "amount": 1000, "challenge": "Chanson improvisée" }
+    {
+      "time": "09:00",
+      "label": "Sport & Talksdd",
+      "checked": true
+    },
+    {
+      "time": "10:30",
+      "label": "Cuisine MIDI",
+      "checked": true
+    },
+    {
+      "time": "12:00",
+      "label": "Création Communautaire 1",
+      "checked": true
+    },
+    {
+      "time": "14:00",
+      "label": "Podcast musical (tooPrettyFlacko)",
+      "checked": false
+    },
+    {
+      "time": "15:30",
+      "label": "Jeu solo narratif",
+      "checked": true
+    },
+    {
+      "time": "17:00",
+      "label": "Jeux avec viewers",
+      "checked": false
+    },
+    {
+      "time": "18:30",
+      "label": "Dîner & Talk",
+      "checked": false
+    },
+    {
+      "time": "20:00",
+      "label": "Radio Libre (Akanedothis)",
+      "checked": true
+    },
+    {
+      "time": "22:00",
+      "label": "Défi communautaire",
+      "checked": false
+    },
+    {
+      "time": "23:30",
+      "label": "Discussion nocturne",
+      "checked": false
+    },
+    {
+      "time": "01:00",
+      "label": "SIESTE 1",
+      "checked": false
+    },
+    {
+      "time": "02:30",
+      "label": "Jeu solo calme",
+      "checked": false
+    },
+    {
+      "time": "04:00",
+      "label": "Création Communautaire 2",
+      "checked": false
+    },
+    {
+      "time": "05:30",
+      "label": "SIESTE 2",
+      "checked": false
+    },
+    {
+      "time": "07:00",
+      "label": "Réveil en douceur",
+      "checked": false
+    },
+    {
+      "time": "08:30",
+      "label": "Clôture du stream",
+      "checked": false
+    }
   ]
 }

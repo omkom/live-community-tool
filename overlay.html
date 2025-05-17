@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Overlay Visuel</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    #effectBox, #messageBox {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 3rem;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .fade {
+      animation: fade 3s ease-in-out forwards;
+    }
+
+    .flash {
+      animation: flash 1s ease-in-out 3;
+    }
+
+    .tada {
+      animation: tada 1s ease-in-out;
+    }
+
+    @keyframes fade {
+      0% { opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes flash {
+      0%, 100% { background: transparent; }
+      50% { background: white; }
+    }
+
+    @keyframes tada {
+      0% { transform: translate(-50%, -50%) scale(1); }
+      10%, 20% { transform: translate(-50%, -50%) scale(0.9) rotate(-3deg); }
+      30%, 50%, 70%, 90% { transform: translate(-50%, -50%) scale(1.1) rotate(3deg); }
+      40%, 60%, 80% { transform: translate(-50%, -50%) scale(1.1) rotate(-3deg); }
+      100% { transform: translate(-50%, -50%) scale(1) rotate(0); }
+    }
+  </style>
+</head>
+<body>
+  <div id="effectBox"></div>
+  <div id="messageBox"></div>
+
+  <script>
+    const effectBox = document.getElementById('effectBox');
+    const messageBox = document.getElementById('messageBox');
+  
+    const ws = new WebSocket(`ws://${location.host}`);
+    ws.onmessage = (msg) => {
+      try {
+        const payload = JSON.parse(msg.data);
+        if (payload.type === 'effect') {
+          triggerEffect(payload.value);
+        } else if (payload.type === 'message') {
+          showMessage(payload.value);
+        }
+      } catch (e) {
+        console.error('Message WebSocket non interprétable', msg.data);
+      }
+    };
+  
+    function triggerEffect(name) {
+      effectBox.textContent = `✨ ${name.toUpperCase()} ✨`;
+      effectBox.className = name;
+      setTimeout(() => effectBox.className = '', 3000);
+    }
+  
+    function showMessage(text) {
+      messageBox.textContent = text;
+      messageBox.className = 'fade';
+      setTimeout(() => {
+        messageBox.className = '';
+        messageBox.textContent = '';
+      }, 4000);
+    }
+  </script>
+</body>
+</html>

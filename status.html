@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Statut en direct</title>
+  <style>
+    body { margin: 0; background: transparent; font-family: sans-serif; color: white; text-align: center; }
+    .wrapper { padding: 10px 20px; background: rgba(0,0,0,0.7); border-radius: 12px; display: inline-block; }
+    .bar-container { width: 300px; background: #333; border-radius: 8px; overflow: hidden; margin: 10px auto; }
+    .bar { height: 24px; background: limegreen; width: 0%; transition: width 0.5s ease-in-out; }
+    h2 { margin: 8px 0 4px; font-size: 1.1em; }
+    p { margin: 0; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h2>🎯 Cagnotte : <span id="donationTotal">0</span>€ / <span id="donationGoal">0</span>€</h2>
+    <div class="bar-container"><div class="bar" id="donationBar"></div></div>
+
+    <h2>💜 Abonnements : <span id="subsTotal">0</span> / <span id="subsGoal">0</span></h2>
+    <div class="bar-container"><div class="bar" id="subsBar"></div></div>
+
+    <p>Dernière mise à jour : <span id="lastUpdate">...</span></p>
+  </div>
+
+  <script>
+    function updateStatus() {
+      fetch('/status.json')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('donationTotal').textContent = data.donation_total;
+          document.getElementById('donationGoal').textContent = data.donation_goal;
+          document.getElementById('subsTotal').textContent = data.subs_total;
+          document.getElementById('subsGoal').textContent = data.subs_goal;
+          document.getElementById('lastUpdate').textContent = new Date(data.last_update).toLocaleString();
+
+          const donationPct = Math.min(100, 100 * data.donation_total / data.donation_goal);
+          const subsPct = Math.min(100, 100 * data.subs_total / data.subs_goal);
+
+          document.getElementById('donationBar').style.width = donationPct + '%';
+          document.getElementById('subsBar').style.width = subsPct + '%';
+        });
+    }
+
+    updateStatus();
+    setInterval(updateStatus, 10000); // rafraîchit toutes les 10s
+    
+  </script>
+  <script>
+    const ws = new WebSocket(`ws://${location.host}`);
+    ws.onmessage = (msg) => {
+      if (msg.data === 'update') updateStatus();
+    };
+  </script>
+</body>
+</html>

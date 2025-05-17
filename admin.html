@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Global Stream</title>
+  <style>
+    body {
+      background: #0f0f0f;
+      color: #f0f0f0;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+    }
+    .column {
+      flex: 1;
+      padding: 30px;
+      overflow-y: auto;
+    }
+    h1, h2 {
+      color: #00ffcc;
+      margin-top: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+    th, td {
+      padding: 8px;
+      border-bottom: 1px solid #333;
+    }
+    th {
+      background: #1c1c1c;
+      text-align: left;
+    }
+    input[type="text"],
+    input[type="time"],
+    input[type="number"],
+    textarea {
+      background: #222;
+      color: #fff;
+      border: none;
+      padding: 6px;
+      width: 100%;
+      font-size: 1rem;
+    }
+    input[type="checkbox"] {
+      transform: scale(1.3);
+    }
+    .btn {
+      margin: 8px 4px 8px 0;
+      padding: 10px 16px;
+      font-size: 1rem;
+      background: #00ffcc;
+      border: none;
+      border-radius: 5px;
+      color: #000;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn:hover {
+      background: #00ddb3;
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+    }
+    .small-btn {
+      padding: 6px 12px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Colonne Planning -->
+  <div class="column" id="col-planning">
+    <h1>🧠 Planning</h1>
+    <table id="planningTable">
+      <thead>
+        <tr>
+          <th>Heure</th>
+          <th>Moment</th>
+          <th>✅</th>
+          <th>🗑️</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn" onclick="addRow()">➕ Ajouter un moment</button>
+    <button class="btn" onclick="savePlanning()">💾 Enregistrer</button>
+  </div>
+
+  <!-- Colonne Cagnotte + Interactions -->
+  <div class="column">
+    <h2>💰 Cagnotte & Subs</h2>
+    <form id="statusForm">
+      <label>Dons reçus (€)</label>
+      <input type="number" id="donation_total">
+      <label>Objectif dons (€)</label>
+      <input type="number" id="donation_goal">
+      <label>Abonnements reçus</label>
+      <input type="number" id="subs_total">
+      <label>Objectif abonnements</label>
+      <input type="number" id="subs_goal">
+      <button type="submit" class="btn">💾 Mettre à jour</button>
+    </form>
+
+    <h2>📢 Interactions</h2>
+    <div class="row">
+      <button class="btn small-btn" onclick="triggerEffect('tada')">✨ Effet Tada</button>
+      <button class="btn small-btn" onclick="triggerEffect('flash')">⚡ Flash</button>
+    </div>
+
+    <h2>💬 Message live</h2>
+    <textarea id="liveMsg" rows="4" placeholder="Écris ici un message à afficher en overlay..."></textarea>
+    <button class="btn" onclick="sendMessage()">📤 Envoyer</button>
+  </div>
+
+  <script>
+    let planningData = [];
+
+    function loadPlanning() {
+      fetch('/stream24h.json')
+        .then(res => res.json())
+        .then(json => {
+          planningData = json.planning;
+          renderTable();
+        });
+    }
+
+    function renderTable() {
+      const tbody = document.querySelector('#planningTable tbody');
+      tbody.innerHTML = '';
+      planningData.forEach((item, i) => {
+        const row = document.createElement('tr');
+
+        const timeCell = document.createElement('td');
+        const timeInput = document.createElement('input');
+        timeInput.type = 'time';
+        timeInput.value = item.time;
+        timeInput.oninput = () => planningData[i].time = timeInput.value;
+        timeCell.appendChild(timeInput);
+
+        const labelCell = document.createElement('td');
+        const labelInput = document.createElement('input');
+        labelInput.type = 'text';
+        labelInput.value = item.label;
+        labelInput.oninput = () => planningData[i].label = labelInput.value;
+        labelCell.appendChild(labelInput);
+
+        const checkCell = document.createElement('td');
+        const checkInput = document.createElement('input');
+        checkInput.type = 'checkbox';
+        checkInput.checked = item.checked;
+        checkInput.onchange = () => planningData[i].checked = checkInput.checked;
+        checkCell.appendChild(checkInput);
+
+        const delCell = document.createElement('td');
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '❌';
+        delBtn.className = 'btn small-btn';
+        delBtn.onclick = () => { planningData.splice(i, 1); renderTable(); };
+        delCell.appendChild(delBtn);
+
+        row.appendChild(timeCell);
+        row.appendChild(labelCell);
+        row.appendChild(checkCell);
+        row.appendChild(delCell);
+        tbody.appendChild(row);
+      });
+    }
+
+    function addRow() {
+      planningData.push({ time: "00:00", label: "Nouveau moment", checked: false });
+      renderTable();
+    }
+
+    function savePlanning() {
+      fetch('/stream24h.json', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planning: planningData })
+      }).then(() => alert('✅ Planning mis à jour !'));
+    }
+
+    function loadStatus() {
+      fetch('/status.json')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('donation_total').value = data.donation_total;
+          document.getElementById('donation_goal').value = data.donation_goal;
+          document.getElementById('subs_total').value = data.subs_total;
+          document.getElementById('subs_goal').value = data.subs_goal;
+        });
+    }
+
+    document.getElementById('statusForm').onsubmit = (e) => {
+      e.preventDefault();
+      const payload = {
+        donation_total: parseInt(document.getElementById('donation_total').value, 10),
+        donation_goal: parseInt(document.getElementById('donation_goal').value, 10),
+        subs_total: parseInt(document.getElementById('subs_total').value, 10),
+        subs_goal: parseInt(document.getElementById('subs_goal').value, 10),
+        last_update: new Date().toISOString()
+      };
+      fetch('/status.json', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(() => alert('✅ Cagnotte mise à jour !'));
+    };
+
+    function triggerEffect(type) {
+      fetch('/effect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type })
+      });
+    }
+
+    function sendMessage() {
+      const msg = document.getElementById('liveMsg').value;
+      fetch('/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg })
+      });
+    }
+
+    loadPlanning();
+    loadStatus();
+  </script>
+</body>
+</html>
