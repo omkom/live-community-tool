@@ -1,6 +1,146 @@
 [
   {
     "type": "INFO",
+    "timestamp": "2025-05-17T15:06:04.033Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:57.695Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:55.787Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:51.429Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:51.359Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:34.575Z",
+    "message": "Effet déclenché: bounce"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:34.575Z",
+    "message": "Message diffusé à 4 clients: {\"type\":\"effect\",\"value\":\"boun..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:32.158Z",
+    "message": "Nouvelle connexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:31.900Z",
+    "message": "Déconnexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:30.730Z",
+    "message": "Effet déclenché: pulse"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:30.730Z",
+    "message": "Message diffusé à 4 clients: {\"type\":\"effect\",\"value\":\"puls..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:29.951Z",
+    "message": "Effet déclenché: bounce"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:29.951Z",
+    "message": "Message diffusé à 4 clients: {\"type\":\"effect\",\"value\":\"boun..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:28.982Z",
+    "message": "Effet déclenché: shake"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:28.982Z",
+    "message": "Message diffusé à 4 clients: {\"type\":\"effect\",\"value\":\"shak..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:25.890Z",
+    "message": "Effet déclenché: flash"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:25.890Z",
+    "message": "Message diffusé à 4 clients: {\"type\":\"effect\",\"value\":\"flas..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:23.564Z",
+    "message": "Effet déclenché: tada"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:23.564Z",
+    "message": "Message diffusé à 4 clients: {\"type\":\"effect\",\"value\":\"tada..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:17.821Z",
+    "message": "Nouvelle connexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:17.602Z",
+    "message": "Déconnexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:05:14.668Z",
+    "message": "Nouvelle connexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:04:51.113Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:04:29.704Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:04:29.523Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:04:21.125Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:04:16.128Z",
+    "message": "Nouvelle connexion WebSocket: admin (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-17T15:04:11.905Z",
+    "message": "✨ Serveur démarré sur http://localhost:3000"
+  },
+  {
+    "type": "INFO",
     "timestamp": "2025-05-17T15:01:11.312Z",
     "message": "✨ Serveur démarré sur http://localhost:3000"
   },
