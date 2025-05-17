@@ -1,39 +1,34 @@
-# Live Community Tool (Stream 24h Edition)
+# 🎬 Stream 24h – Système interactif en temps réel pour Twitch
 
-Bienvenue sur le dépôt officiel du projet open source créé en direct pendant le stream 24h de @Cubilizer.
+Bienvenue sur le dépôt du **système de gestion de stream 24h interactif**, utilisé pour animer et structurer un live Twitch événementiel (passage affilié, marathon, anniversaire, etc.).
 
-## 🎯 Objectif
-Créer un outil communautaire utile et fun pendant le live, avec contributions du chat Twitch, commits en live et déploiement si possible à la fin du stream.
+Ce projet a été conçu pour permettre à un streamer de :
+- Planifier et visualiser chaque moment du live,
+- Gérer une cagnotte en temps réel (dons & subs),
+- Interagir avec les viewers via des effets visuels et des messages dynamiques,
+- Garder une trace claire de l'évolution du stream.
 
-## 📅 Planning du Stream
-Le planning complet du stream est contenu dans `stream24h.json`. Ce fichier est mis à jour dynamiquement pendant le live.
+---
 
-## 💡 Idées de fonctionnalités pour le projet
-- Générateur de contenus funs
-- Lecteur de quotes communautaires
-- Affichage dynamique des dons et des défis
-- Module d'intégration Twitch chat
-- Mini-jeux ou API publique communautaire
+## 🧱 Fonctionnalités principales
 
-## 🤝 Contribuer
-Tout le monde peut proposer une amélioration ou PR pendant le live !
+### 🧠 Planning du stream
+- Interface admin complète (heure, nom, statut)
+- Ajout / suppression de lignes dynamiquement
+- Synchronisation en temps réel avec l’overlay OBS
 
-1. Forkez le dépôt  
-2. Créez une branche  
-3. Faites vos modifs  
-4. Proposez une PR  
+### 💰 Gestion de cagnotte
+- Montant de dons & objectif
+- Nombre de subs & objectif
+- Mise à jour via interface admin
+- Affichage live dans OBS via `status.html`
 
-Les PR validées en live seront merge en temps réel.
+### ⚡ Interactions en direct
+- Envoi de messages à l’écran (type "Merci les viewers !")
+- Déclenchement d’effets visuels (flash, tada, boom, etc.)
+- Réception dans `overlay.html` via WebSocket
 
-## 🧠 Suivi des objectifs
-- Voir `stream24h.json` pour les dons et étapes du stream.
-- Des overlays OBS lient ce fichier en direct pour mise à jour automatique.
+---
 
-## 🎙️ Stream  
-📺 https://www.twitch.tv/cubilizer
+## 📂 Arborescence
 
-## ❤️ Cagnotte Caritative
-Tous les dons sont reversés à une association pour la culture et l'enfance.
-
-## 📄 Licence
-MIT. Faites-vous plaisir, et partagez la vibe du Daron.
