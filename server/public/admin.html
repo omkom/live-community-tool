@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Stream 24h</title>
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <i class="fas fa-broadcast-tower"></i>
+      <span>STREAM 24H</span>
+    </div>
+    <div class="stream-title">
+      <span id="stream-clock">00:00:00</span>
+      <span id="connection-status" title="Statut de connexion">⚪</span>
+    </div>
+  </header>
+
+  <!-- Layout principal -->
+  <div class="layout">
+    <!-- Colonne Planning -->
+    <div class="column">
+      <h2><i class="fas fa-calendar-check"></i> Planning du stream</h2>
+      
+      <table id="planningTable">
+        <thead>
+          <tr>
+            <th class="time-col">Heure</th>
+            <th>Activité</th>
+            <th class="status-col">Statut</th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Contenu dynamique -->
+        </tbody>
+      </table>
+      
+      <div class="btn-group">
+        <button class="btn btn-add" id="addPlanningRow">
+          <i class="fas fa-plus"></i> Ajouter
+        </button>
+        <button class="btn" id="savePlanning">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+        <button class="btn btn-text" id="sortPlanning">
+          <i class="fas fa-sort"></i> Trier par heure
+        </button>
+      </div>
+      
+      <div class="card" id="timeline-preview">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-hourglass-half"></i> Timeline actuelle
+          </div>
+        </div>
+        <div class="timeline" id="timelineView">
+          <!-- Timeline générée en JS -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- Colonne Cagnotte & Interactions -->
+    <div class="column">
+      <div class="tabs">
+        <div class="tab active" data-tab="cagnotte">
+          <i class="fas fa-coins"></i> Cagnotte
+        </div>
+        <div class="tab" data-tab="interactions">
+          <i class="fas fa-bolt"></i> Interactions
+        </div>
+        <div class="tab" data-tab="logs">
+          <i class="fas fa-list"></i> Logs
+        </div>
+      </div>
+      
+      <!-- Tab Cagnotte -->
+      <div class="tab-content active" id="cagnotte-tab">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-donate"></i> Dons
+            </div>
+          </div>
+          
+          <div class="donation-stats">
+            <span>Actuel: <strong id="donation-current">0</strong>€</span>
+            <span>Objectif: <strong id="donation-goal">1000</strong>€</span>
+          </div>
+          
+          <div class="progress-container">
+            <div class="progress-bar" id="donation-progress" style="width: 0%"></div>
+          </div>
+          
+          <div class="form-group">
+            <label for="donation_total">Montant actuel (€)</label>
+            <input type="number" id="donation_total" min="0" step="1">
+          </div>
+          
+          <div class="form-group">
+            <label for="donation_goal">Objectif (€)</label>
+            <input type="number" id="donation_goal" min="0" step="100">
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-star"></i> Abonnements
+            </div>
+          </div>
+          
+          <div class="donation-stats">
+            <span>Actuel: <strong id="subs-current">0</strong></span>
+            <span>Objectif: <strong id="subs-goal">50</strong></span>
+          </div>
+          
+          <div class="progress-container">
+            <div class="progress-bar" id="subs-progress" style="width: 0%"></div>
+          </div>
+          
+          <div class="form-group">
+            <label for="subs_total">Nombre actuel</label>
+            <input type="number" id="subs_total" min="0" step="1">
+          </div>
+          
+          <div class="form-group">
+            <label for="subs_goal">Objectif</label>
+            <input type="number" id="subs_goal" min="0" step="5">
+          </div>
+        </div>
+        
+        <button class="btn" id="updateStatus">
+          <i class="fas fa-sync-alt"></i> Mettre à jour
+        </button>
+      </div>
+      
+      <!-- Tab Interactions -->
+      <div class="tab-content" id="interactions-tab">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-magic"></i> Effets visuels
+            </div>
+          </div>
+          
+          <div class="effects-grid">
+            <div class="effect-btn" data-effect="tada">
+              <div class="effect-icon">✨</div>
+              <div class="effect-name">Tada</div>
+            </div>
+            <div class="effect-btn" data-effect="flash">
+              <div class="effect-icon">⚡</div>
+              <div class="effect-name">Flash</div>
+            </div>
+            <div class="effect-btn" data-effect="zoom">
+              <div class="effect-icon">🔍</div>
+              <div class="effect-name">Zoom</div>
+            </div>
+            <div class="effect-btn" data-effect="shake">
+              <div class="effect-icon">📳</div>
+              <div class="effect-name">Shake</div>
+            </div>
+            <div class="effect-btn" data-effect="bounce">
+              <div class="effect-icon">🏀</div>
+              <div class="effect-name">Bounce</div>
+            </div>
+            <div class="effect-btn" data-effect="pulse">
+              <div class="effect-icon">💓</div>
+              <div class="effect-name">Pulse</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-comment-alt"></i> Message live
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <textarea id="liveMsg" maxlength="200" rows="4" placeholder="Écrivez un message à afficher en overlay..."></textarea>
+            <div class="char-count">
+              <span id="charCount">0</span>/200
+            </div>
+          </div>
+          
+          <button class="btn" id="sendMessage">
+            <i class="fas fa-paper-plane"></i> Envoyer
+          </button>
+        </div>
+      </div>
+      
+      <!-- Tab Logs -->
+      <div class="tab-content" id="logs-tab">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-history"></i> Journal d'activité
+            </div>
+            <button class="btn btn-sm" id="refreshLogs">
+              <i class="fas fa-sync"></i> Actualiser
+            </button>
+          </div>
+          
+          <div class="logs-container" id="logsContainer">
+            <!-- Logs générés en JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast container pour notifications -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="js/admin.js"></script>
+</body>
+</html>

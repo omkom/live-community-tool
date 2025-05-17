@@ -1,6 +1,19 @@
 {
+  "name": "stream24h",
+  "version": "1.0.0",
+  "description": "Système interactif en temps réel pour Twitch",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "author": "",
+  "license": "MIT",
   "dependencies": {
     "express": "^5.1.0",
     "ws": "^8.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }

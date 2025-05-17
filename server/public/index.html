@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stream 24h - Planning</title>
+  <link rel="stylesheet" href="css/index.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">
+        <i class="fas fa-broadcast-tower"></i>
+        <span>STREAM 24H</span>
+      </div>
+      <div class="subtitle">Marathon en direct - Planification complète</div>
+      <div class="timer">
+        <i class="fas fa-clock timer-icon"></i>
+        <span id="stream-time">00:00:00</span>
+      </div>
+    </div>
+    
+    <div class="timeline" id="timeline">
+      <!-- Timeline générée en JS -->
+    </div>
+    
+    <div class="donation-container">
+      <div class="donation-header">
+        <i class="fas fa-heart timer-icon"></i>
+        <div class="donation-title">Objectifs du Stream</div>
+      </div>
+      
+      <div class="progress-section">
+        <div class="progress-info">
+          <div class="progress-label">
+            <i class="fas fa-donate"></i>
+            <span>Dons</span>
+          </div>
+          <div class="progress-value">
+            <span id="donation-current">0</span>€ / <span id="donation-goal">1000</span>€
+          </div>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar" id="donation-progress" style="width: 0%"></div>
+        </div>
+      </div>
+      
+      <div class="progress-section">
+        <div class="progress-info">
+          <div class="progress-label">
+            <i class="fas fa-star"></i>
+            <span>Abonnements</span>
+          </div>
+          <div class="progress-value">
+            <span id="subs-current">0</span> / <span id="subs-goal">50</span>
+          </div>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar" id="subs-progress" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="js/index.js"></script>
+</body>
+</html>

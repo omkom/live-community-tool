@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Statut Stream</title>
+  <link rel="stylesheet" href="css/status.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div class="status-container">
+    <div class="header">
+      <div class="title">
+        <i class="fas fa-chart-line icon"></i>
+        <span>Statut du Stream</span>
+      </div>
+      <div class="stream-time" id="stream-time">00:00:00</div>
+    </div>
+    
+    <div class="progress-section">
+      <div class="progress-info">
+        <div class="progress-label">
+          <i class="fas fa-donate icon"></i>
+          <span>Dons</span>
+        </div>
+        <div class="progress-value">
+          <span id="donation-current">0</span>€ / <span id="donation-goal">1000</span>€
+        </div>
+      </div>
+      <div class="progress-container">
+        <div class="progress-bar" id="donation-progress" style="width: 0%"></div>
+      </div>
+    </div>
+    
+    <div class="progress-section">
+      <div class="progress-info">
+        <div class="progress-label">
+          <i class="fas fa-star icon"></i>
+          <span>Abonnements</span>
+        </div>
+        <div class="progress-value">
+          <span id="subs-current">0</span> / <span id="subs-goal">50</span>
+        </div>
+      </div>
+      <div class="progress-container">
+        <div class="progress-bar" id="subs-progress" style="width: 0%"></div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div id="current-activity">
+        <i class="fas fa-play-circle"></i>
+        <span id="activity-name">En direct...</span>
+      </div>
+      <div id="last-update">Mis à jour: <span id="update-time">à l'instant</span></div>
+    </div>
+  </div>
+  
+  <script src="js/status.js"></script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+/* public/css/overlay.css */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    font-family: 'Segoe UI', sans-serif;
+    background-color: transparent;
+  }
+  
+  #overlay-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  
+  /* Message Box */
+  #messageBox {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    max-width: 80%;
+    padding: 20px 30px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: bold;
+    opacity: 0;
+    box-shadow: 0 0 30px rgba(0, 255, 204, 0.5);
+    border: 2px solid #00ffcc;
+    z-index: 100;
+  }
+  
+  /* Effect Box */
+  #effectBox {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    z-index: 10;
+    pointer-events: none;
+  }
+  
+  #effectContent {
+    font-size: 5rem;
+    color: white;
+    text-align: center;
+    text-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    padding: 30px;
+    background: transparent;
+  }
+  
+  /* Status Indicators */
+  .status-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+  }
+  
+  .status-live {
+    background: #ff4757;
+    box-shadow: 0 0 10px #ff4757;
+    animation: pulse 2s infinite;
+  }
+  
+  .status-done {
+    background: #2ed573;
+  }
+  
+  .status-pending {
+    background: #747d8c;
+  }
+  
+  /* Animation Keyframes */
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  
+  @keyframes fadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  
+  @keyframes scaleFadeIn {
+    0% { 
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.8);
+    }
+    70% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.05);
+    }
+    100% { 
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+  
+  @keyframes scaleFadeOut {
+    0% { 
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    100% { 
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.9);
+    }
+  }
+  
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 71, 87, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+  }
+  
+  @keyframes flash {
+    0%, 100% { background: transparent; }
+    50% { background: rgba(255, 255, 255, 0.9); }
+  }
+  
+  @keyframes tada {
+    0% { transform: scale(1) rotate(0deg); }
+    10%, 20% { transform: scale(0.9) rotate(-3deg); }
+    30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
+    40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+  
+  @keyframes zoom {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.5); }
+    100% { transform: scale(1); }
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+    20%, 40%, 60%, 80% { transform: translateX(10px); }
+  }
+  
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-30px); }
+    60% { transform: translateY(-15px); }
+  }
+  
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  
+  /* Animation Classes */
+  .fade {
+    animation: fadeIn 0.5s ease-in-out forwards, 
+               fadeOut 0.5s ease-in-out forwards 3.5s;
+  }
+  
+  .message-show {
+    animation: scaleFadeIn 0.5s ease-out forwards,
+               scaleFadeOut 0.5s ease-in forwards 3.5s;
+  }
+  
+  .flash {
+    animation: flash 0.3s ease-in-out 3;
+    background: transparent;
+  }
+  
+  .tada {
+    animation: tada 1s ease-in-out;
+  }
+  
+  .zoom {
+    animation: zoom 1s ease-in-out;
+  }
+  
+  .shake {
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  .bounce {
+    animation: bounce 1s ease-in-out;
+  }
+  
+  .pulse {
+    animation: pulse 1s ease-in-out 3;
+  }
+  
+  /* Confetti animation (for celebratory effects) */
+  #confetti-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+  }
