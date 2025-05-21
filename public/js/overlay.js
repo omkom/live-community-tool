@@ -50,8 +50,20 @@ function initWebSocket() {
 }
 
 // Configuration du confetti
+// Configuration du confetti
 function setupConfetti() {
   const canvas = document.getElementById('confetti-canvas');
+  
+  // Check if ConfettiGenerator exists
+  if (typeof ConfettiGenerator === 'undefined') {
+    console.warn('ConfettiGenerator not found. Confetti effects will be disabled.');
+    confetti = {
+      render: () => console.log('Confetti render called but library not loaded'),
+      clear: () => {}
+    };
+    return;
+  }
+  
   const confettiSettings = {
     target: canvas,
     max: 150,
