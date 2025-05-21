@@ -1,343 +1,496 @@
 /* public/css/index.css */
 :root {
-    --primary: #00ffcc;
-    --dark: #111111;
-    --darker: #0f0f0f;
-    --light: #f0f0f0;
-    --mid: #555555;
+  --primary: #00ffcc;
+  --dark: #111111;
+  --darker: #0f0f0f;
+  --light: #f0f0f0;
+  --mid: #555555;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: var(--dark);
+  color: var(--light);
+  line-height: 1.6;
+  background-image: url('https://images.unsplash.com/photo-1539321908154-04927596764d?q=80&w=1000');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 10, 15, 0.8);
+  z-index: -1;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px 15px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.logo {
+  color: var(--primary);
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: var(--mid);
+  margin-bottom: 20px;
+}
+
+.timer {
+  background: rgba(0, 0, 0, 0.7);
+  padding: 15px 25px;
+  border-radius: 50px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.5rem;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 255, 204, 0.3);
+}
+
+.timer-icon {
+  color: var(--primary);
+}
+
+.donation-container {
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 50px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 255, 204, 0.2);
+}
+
+/* Styles pour les items avec des statuts différents */
+.timeline-item.done .timeline-content {
+  border-left: 3px solid #2ed573;
+  opacity: 0.7;
+}
+
+.timeline-item.current .timeline-content {
+  border-left: 3px solid #ff3300;
+  box-shadow: 0 0 20px rgba(255, 51, 0, 0.2);
+}
+
+.timeline-item.done .timeline-title {
+  text-decoration: line-through;
+  color: var(--mid);
+}
+
+/* Animation de pulse pour l'élément actuel */
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 5px rgba(255, 51, 0, 0.3);
   }
-  
-  body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background: var(--dark);
-    color: var(--light);
-    line-height: 1.6;
+  50% {
+    box-shadow: 0 0 20px rgba(255, 51, 0, 0.6);
   }
-  
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 30px 15px;
+  100% {
+    box-shadow: 0 0 5px rgba(255, 51, 0, 0.3);
   }
-  
-  .header {
-    text-align: center;
-    margin-bottom: 40px;
+}
+
+.timeline-item.current .timeline-content {
+  animation: glow 2s infinite;
+}
+
+.timeline {
+  position: relative;
+  margin: 0 auto;
+  padding: 80px 0;
+  max-width: 800px;
+  min-height: 800px;
+  overflow: visible;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 2px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(-50%);
+  z-index: 0;
+}
+
+.timeline-item {
+  position: absolute;
+  left: 50%;
+  width: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+.timeline-item:nth-child(odd) {
+  left: 0;
+  padding-right: 40px;
+  text-align: right;
+}
+
+.timeline-item:nth-child(even) {
+  padding-left: 40px;
+}
+
+.timeline-content {
+  padding: 15px 20px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border-left: 3px solid var(--primary);
+  transition: all 0.3s ease;
+  display: inline-block;
+  max-width: 300px;
+}
+
+.timeline-content:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--mid);
+  z-index: 1;
+  transform: translateY(-50%);
+}
+
+.timeline-item:nth-child(odd)::before {
+  right: -8px;
+}
+
+.timeline-item:nth-child(even)::before {
+  left: -8px;
+}
+
+.timeline-item.current::before {
+  background: var(--primary);
+  box-shadow: 0 0 15px var(--primary);
+  animation: pulse 2s infinite;
+}
+
+.timeline-item.done::before {
+  background: #2ed573;
+}
+
+.timeline-time {
+  font-weight: bold;
+  color: var(--primary);
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timeline-title {
+  font-size: 1.1rem;
+  font-weight: normal;
+  margin-bottom: 5px;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.status-live {
+  background: #ff4757;
+  box-shadow: 0 0 10px #ff4757;
+  animation: pulse 2s infinite;
+}
+
+.status-done {
+  background: #2ed573;
+}
+
+.status-pending {
+  background: #747d8c;
+}
+
+.current-time-indicator {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: #ff3300;
+  z-index: 10;
+  box-shadow: 0 0 10px rgba(255, 51, 0, 0.7);
+}
+
+.current-time-label {
+  position: absolute;
+  right: -120px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #ff3300;
+  border: 1px solid #ff3300;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  z-index: 11;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  box-shadow: 0 0 10px rgba(255, 51, 0, 0.3);
+}
+
+/* Style pour les heures sur la timeline */
+.timeline-hour-marker {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.05);
+  z-index: 1;
+}
+
+.timeline-hour-label {
+  position: absolute;
+  left: -45px;
+  width: 40px;
+  text-align: right;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.7rem;
+  z-index: 6;
+  transform: translateY(-50%);
+}
+
+.timeline-empty {
+  text-align: center;
+  padding: 50px 0;
+  color: var(--mid);
+}
+
+/* Donation Container */
+.donation-container {
+  background: var(--darker);
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 50px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.donation-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  gap: 10px;
+}
+
+.donation-title {
+  font-size: 1.5rem;
+  color: var(--primary);
+}
+
+.progress-section {
+  margin-bottom: 20px;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-size: 1rem;
+}
+
+.progress-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.progress-value {
+  font-weight: bold;
+}
+
+.progress-container {
+  height: 15px;
+  background: var(--dark);
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(to right, var(--primary), #00ccff);
+  width: 0%;
+  transition: width 1s ease-in-out;
+  position: relative;
+  border-radius: 5px;
+}
+
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shine 2s infinite;
+}
+
+@keyframes shine {
+  0% {
+    background-position: -100% 0;
   }
-  
-  .logo {
-    color: var(--primary);
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
+  100% {
+    background-position: 100% 0;
   }
-  
-  .subtitle {
-    font-size: 1.2rem;
-    color: var(--mid);
-    margin-bottom: 20px;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 204, 0.7);
   }
-  
-  .timer {
-    background: var(--darker);
-    padding: 15px 25px;
-    border-radius: 50px;
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 1.5rem;
-    margin-bottom: 30px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  70% {
+    box-shadow: 0 0 0 10px rgba(0, 255, 204, 0);
   }
-  
-  .timer-icon {
-    color: var(--primary);
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 204, 0);
   }
-  
-  .timeline {
-    position: relative;
-    margin: 0 auto;
-    padding: 40px 0;
-    max-width: 800px;
-  }
-  
+}
+
+/* Responsive */
+@media (max-width: 768px) {
   .timeline::before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    width: 2px;
-    height: 100%;
-    background: var(--mid);
-    transform: translateX(-50%);
+    left: 60px;
   }
   
   .timeline-item {
-    display: flex;
-    justify-content: flex-end;
-    padding-right: 30px;
-    position: relative;
-    margin-bottom: 50px;
-    width: 50%;
+    width: 100%;
+    padding-left: 100px;
+    padding-right: 0;
   }
   
   .timeline-item:nth-child(even) {
-    align-self: flex-end;
-    justify-content: flex-start;
-    padding-left: 30px;
-    padding-right: 0;
-    left: 50%;
-  }
-  
-  .timeline-content {
-    padding: 20px;
-    background: var(--darker);
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    position: relative;
-    width: 100%;
-    max-width: 350px;
-    transition: all 0.3s ease;
-  }
-  
-  .timeline-content:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+    left: 0;
+    padding-left: 100px;
   }
   
   .timeline-item::before {
-    content: '';
-    position: absolute;
-    top: 20px;
-    right: -5px;
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-    background: var(--mid);
-    z-index: 1;
-  }
-  
-  .timeline-item:nth-child(even)::before {
-    left: -6px;
+    left: 54px;
     right: auto;
   }
   
-  .timeline-item.current::before {
-    background: var(--primary);
-    box-shadow: 0 0 10px var(--primary);
-    animation: pulse 2s infinite;
+  .timeline-item:nth-child(even)::before {
+    left: 54px;
   }
   
-  .timeline-item.done::before {
-    background: #2ed573;
+  .timeline-content {
+    max-width: 100%;
   }
   
-  .timeline-time {
-    font-weight: bold;
-    color: var(--primary);
-    font-size: 1.2rem;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .timeline-hour-marker {
+    left: 60px;
+    width: calc(100% - 60px);
   }
   
-  .timeline-title {
-    font-size: 1.1rem;
-    font-weight: normal;
-    margin-bottom: 5px;
+  .timeline-hour-label {
+    left: 20px;
+    text-align: right;
   }
   
-  .timeline-item.done .timeline-title {
-    text-decoration: line-through;
-    color: var(--mid);
+  .current-time-indicator {
+    left: 60px;
+    width: calc(100% - 60px);
   }
   
-  .status-dot {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    margin-right: 5px;
+  .current-time-label {
+    left: 70px;
+    right: auto;
+  }
+}
+
+@media (max-width: 576px) {
+  .logo {
+    font-size: 2rem;
   }
   
-  .status-live {
-    background: #ff4757;
-    box-shadow: 0 0 10px #ff4757;
-    animation: pulse 2s infinite;
-  }
-  
-  .status-done {
-    background: #2ed573;
-  }
-  
-  .status-pending {
-    background: #747d8c;
-  }
-  
-  /* Donation Container */
-  .donation-container {
-    background: var(--darker);
-    border-radius: 10px;
-    padding: 20px;
-    margin-top: 50px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  }
-  
-  .donation-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-    gap: 10px;
-  }
-  
-  .donation-title {
-    font-size: 1.5rem;
-    color: var(--primary);
-  }
-  
-  .progress-section {
-    margin-bottom: 20px;
-  }
-  
-  .progress-info {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
+  .subtitle {
     font-size: 1rem;
   }
   
-  .progress-label {
-    display: flex;
-    align-items: center;
-    gap: 5px;
+  .timer {
+    font-size: 1.2rem;
   }
   
-  .progress-value {
-    font-weight: bold;
+  .timeline::before {
+    left: 40px;
   }
   
-  .progress-container {
-    height: 15px;
-    background: var(--dark);
-    border-radius: 5px;
-    overflow: hidden;
-    position: relative;
+  .timeline-item {
+    padding-left: 70px;
   }
   
-  .progress-bar {
-    height: 100%;
-    background: linear-gradient(to right, var(--primary), #00ccff);
-    width: 0%;
-    transition: width 1s ease-in-out;
-    position: relative;
-    border-radius: 5px;
+  .timeline-item:nth-child(even) {
+    padding-left: 70px;
   }
   
-  .progress-bar::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      to right,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.3) 50%,
-      rgba(255, 255, 255, 0) 100%
-    );
-    animation: shine 2s infinite;
+  .timeline-item::before {
+    left: 34px;
   }
   
-  @keyframes shine {
-    0% {
-      background-position: -100% 0;
-    }
-    100% {
-      background-position: 100% 0;
-    }
+  .timeline-item:nth-child(even)::before {
+    left: 34px;
   }
   
-  @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 rgba(0, 255, 204, 0.7);
-    }
-    70% {
-      box-shadow: 0 0 0 10px rgba(0, 255, 204, 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgba(0, 255, 204, 0);
-    }
+  .timeline-hour-marker {
+    left: 40px;
+    width: calc(100% - 40px);
   }
   
-  /* Responsive */
-  @media (max-width: 768px) {
-    .timeline::before {
-      left: 60px;
-    }
-    
-    .timeline-item {
-      width: 100%;
-      padding-left: 100px;
-      padding-right: 0;
-    }
-    
-    .timeline-item:nth-child(even) {
-      left: 0;
-      padding-left: 100px;
-    }
-    
-    .timeline-item::before {
-      left: 54px;
-      right: auto;
-    }
-    
-    .timeline-item:nth-child(even)::before {
-      left: 54px;
-    }
-    
-    .timeline-content {
-      max-width: 100%;
-    }
+  .timeline-hour-label {
+    left: 10px;
   }
   
-  @media (max-width: 576px) {
-    .logo {
-      font-size: 2rem;
-    }
-    
-    .subtitle {
-      font-size: 1rem;
-    }
-    
-    .timer {
-      font-size: 1.2rem;
-    }
-    
-    .timeline::before {
-      left: 40px;
-    }
-    
-    .timeline-item {
-      padding-left: 70px;
-    }
-    
-    .timeline-item:nth-child(even) {
-      padding-left: 70px;
-    }
-    
-    .timeline-item::before {
-      left: 34px;
-    }
-    
-    .timeline-item:nth-child(even)::before {
-      left: 34px;
-    }
+  .current-time-indicator {
+    left: 40px;
+    width: calc(100% - 40px);
   }
+  
+  .current-time-label {
+    left: 50px;
+    right: auto;
+  }
+}
