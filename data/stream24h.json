@@ -1,9 +1,9 @@
 {
   "planning": [
     {
-      "time": "00:20",
+      "time": "00:01",
       "label": "Introduction",
-      "checked": false
+      "checked": true
     },
     {
       "time": "01:44",

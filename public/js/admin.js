@@ -3,6 +3,8 @@
 let planningData = [];
 let ws = null;
 let connectionStatus = 'disconnected';
+let planningAutoSaveTimeout = null;
+let statusAutoSaveTimeout = null;
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
@@ -146,6 +148,7 @@ function renderPlanningTable() {
     timeInput.addEventListener('change', () => {
       planningData[index].time = timeInput.value;
       renderTimeline();
+      autoSavePlanning();
     });
     timeCell.appendChild(timeInput);
     
@@ -157,6 +160,7 @@ function renderPlanningTable() {
     labelInput.addEventListener('input', () => {
       planningData[index].label = labelInput.value;
       renderTimeline();
+      autoSavePlanning();
     });
     labelCell.appendChild(labelInput);
     
@@ -168,6 +172,7 @@ function renderPlanningTable() {
     statusInput.addEventListener('change', () => {
       planningData[index].checked = statusInput.checked;
       renderTimeline();
+      autoSavePlanning();
     });
     statusCell.appendChild(statusInput);
     
@@ -195,6 +200,7 @@ function renderPlanningTable() {
         planningData.splice(index, 1);
         renderPlanningTable();
         renderTimeline();
+        autoSavePlanning();
       }
     });
     
@@ -225,6 +231,7 @@ function moveRow(index, direction) {
   
   renderPlanningTable();
   renderTimeline();
+  autoSavePlanning();
 }
 
 // Rendu de la timeline
@@ -313,18 +320,74 @@ function loadStatus() {
     });
 }
 
-// Modifier la fonction updateStatus() pour inclure l'heure de début
-function updateStatus() {
+// Auto-sauvegarde du planning avec throttling
+function autoSavePlanning() {
+  if (planningAutoSaveTimeout) {
+    clearTimeout(planningAutoSaveTimeout);
+  }
+  
+  planningAutoSaveTimeout = setTimeout(() => {
+    savePlanning(true); // Passer true pour indiquer que c'est un auto-save
+  }, 2000);
+}
+
+// Auto-sauvegarde du statut avec throttling
+function autoSaveStatus() {
+  if (statusAutoSaveTimeout) {
+    clearTimeout(statusAutoSaveTimeout);
+  }
+  
+  statusAutoSaveTimeout = setTimeout(() => {
+    updateStatus(true); // Passer true pour indiquer que c'est un auto-save
+  }, 2000);
+}
+
+// Sauvegarde du planning
+function savePlanning(autoSave = false) {
+  // Ne demander confirmation que si c'est une sauvegarde manuelle et que le planning est vide
+  if (planningData.length === 0 && !autoSave) {
+    if (!confirm('Le planning est vide. Confirmer quand même ?')) {
+      return;
+    }
+  }
+  
+  fetch('/api/planning', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ planning: planningData })
+  })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(err => {
+          throw new Error(err.error || `Erreur HTTP ${response.status}`);
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      // N'afficher le toast que si ce n'est pas une auto-sauvegarde
+      if (!autoSave) {
+        showToast('Planning enregistré avec succès', 'success');
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors de la sauvegarde du planning:', error);
+      showToast(`Erreur: ${error.message}`, 'error');
+    });
+}
+
+// Mise à jour du statut
+function updateStatus(autoSave = false) {
   const donationTotal = parseInt(document.getElementById('donation_total').value, 10) || 0;
   const donationGoal = parseInt(document.getElementById('donation_goal').value, 10) || 1000;
   const subsTotal = parseInt(document.getElementById('subs_total').value, 10) || 0;
   const subsGoal = parseInt(document.getElementById('subs_goal').value, 10) || 50;
-  const streamStartTimeInput = document.getElementById('stream_start_time').value;
+  const streamStartTimeInput = document.getElementById('stream_start_time');
   
   // Convertir l'heure de début en format ISO pour le stockage
   let streamStartTime = null;
-  if (streamStartTimeInput) {
-    streamStartTime = new Date(streamStartTimeInput).toISOString();
+  if (streamStartTimeInput && streamStartTimeInput.value) {
+    streamStartTime = new Date(streamStartTimeInput.value).toISOString();
   }
   
   const payload = {
@@ -349,7 +412,10 @@ function updateStatus() {
       return response.json();
     })
     .then(data => {
-      showToast('Statut mis à jour avec succès', 'success');
+      // N'afficher le toast que si ce n'est pas une auto-sauvegarde
+      if (!autoSave) {
+        showToast('Statut mis à jour avec succès', 'success');
+      }
       updateDonationProgress(donationTotal, donationGoal, subsTotal, subsGoal);
     })
     .catch(error => {
@@ -388,6 +454,7 @@ function initEventListeners() {
     
     renderPlanningTable();
     renderTimeline();
+    autoSavePlanning();
   });
   
   // Bouton sauvegarde du planning
@@ -401,6 +468,7 @@ function initEventListeners() {
     renderPlanningTable();
     renderTimeline();
     showToast('Planning trié par ordre chronologique', 'info');
+    autoSavePlanning();
   });
   
   // Bouton mise à jour du statut
@@ -432,73 +500,15 @@ function initEventListeners() {
   document.getElementById('refreshLogs').addEventListener('click', () => {
     loadLogs();
   });
-}
-
-// Sauvegarde du planning
-function savePlanning() {
-  if (planningData.length === 0) {
-    if (!confirm('Le planning est vide. Confirmer quand même ?')) {
-      return;
-    }
+  
+  // Ajouter des event listeners pour l'auto-save du statut
+  document.getElementById('donation_total').addEventListener('input', autoSaveStatus);
+  document.getElementById('donation_goal').addEventListener('input', autoSaveStatus);
+  document.getElementById('subs_total').addEventListener('input', autoSaveStatus);
+  document.getElementById('subs_goal').addEventListener('input', autoSaveStatus);
+  if (document.getElementById('stream_start_time')) {
+    document.getElementById('stream_start_time').addEventListener('change', autoSaveStatus);
   }
-  
-  fetch('/api/planning', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ planning: planningData })
-  })
-    .then(response => {
-      if (!response.ok) {
-        return response.json().then(err => {
-          throw new Error(err.error || `Erreur HTTP ${response.status}`);
-        });
-      }
-      return response.json();
-    })
-    .then(data => {
-      showToast('Planning enregistré avec succès', 'success');
-    })
-    .catch(error => {
-      console.error('Erreur lors de la sauvegarde du planning:', error);
-      showToast(`Erreur: ${error.message}`, 'error');
-    });
-}
-
-// Mise à jour du statut
-function updateStatus() {
-  const donationTotal = parseInt(document.getElementById('donation_total').value, 10) || 0;
-  const donationGoal = parseInt(document.getElementById('donation_goal').value, 10) || 1000;
-  const subsTotal = parseInt(document.getElementById('subs_total').value, 10) || 0;
-  const subsGoal = parseInt(document.getElementById('subs_goal').value, 10) || 50;
-  
-  const payload = {
-    donation_total: donationTotal,
-    donation_goal: donationGoal,
-    subs_total: subsTotal,
-    subs_goal: subsGoal
-  };
-  
-  fetch('/api/status', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  })
-    .then(response => {
-      if (!response.ok) {
-        return response.json().then(err => {
-          throw new Error(err.error || `Erreur HTTP ${response.status}`);
-        });
-      }
-      return response.json();
-    })
-    .then(data => {
-      showToast('Statut mis à jour avec succès', 'success');
-      updateDonationProgress(donationTotal, donationGoal, subsTotal, subsGoal);
-    })
-    .catch(error => {
-      console.error('Erreur lors de la mise à jour du statut:', error);
-      showToast(`Erreur: ${error.message}`, 'error');
-    });
 }
 
 // Déclenchement d'un effet

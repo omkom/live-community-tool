@@ -85,24 +85,6 @@ function renderTimeline() {
   // Trier les éléments par heure
   const sortedData = [...planningData].sort((a, b) => a.time.localeCompare(b.time));
   
-  // Calculer l'heure actuelle
-  const now = new Date();
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
-  const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-  
-  // Convertir l'heure actuelle en minutes depuis minuit pour le calcul de position
-  const currentTimeInMinutes = currentHour * 60 + currentMinute;
-  
-  // Trouver l'élément actuel ou prochain
-  let currentIndex = -1;
-  
-  for (let i = 0; i < sortedData.length; i++) {
-    if (sortedData[i].time <= currentTimeStr && !sortedData[i].checked) {
-      currentIndex = i;
-    }
-  }
-  
   // Déterminer les bornes de temps pour la journée (min et max)
   let minTimeInMinutes = 24 * 60;  // Initialiser à la fin de la journée
   let maxTimeInMinutes = 0;        // Initialiser au début de la journée
@@ -117,17 +99,18 @@ function renderTimeline() {
   
   // Ajouter des marges pour éviter que le premier et le dernier événement soient collés aux bords
   minTimeInMinutes = Math.max(0, minTimeInMinutes - 60);  // -1h
-  maxTimeInMinutes = Math.min(24 * 60, maxTimeInMinutes + 60);  // +1h
+  maxTimeInMinutes = Math.min(24 * 60, maxTimeInMinutes + 240);  // +4h pour laisser de l'espace pour les derniers blocs
   
   // Durée totale en minutes
   const totalDurationInMinutes = maxTimeInMinutes - minTimeInMinutes;
   
-  // Créer les marqueurs d'heures
+  // Créer le conteneur des marqueurs d'heures
   const hourMarkers = document.createElement('div');
   hourMarkers.className = 'hour-markers';
+  timeline.appendChild(hourMarkers);
   
-  // Ajouter les marqueurs d'heures (une par heure)
-  for (let hour = 0; hour < 24; hour++) {
+  // Ajouter les marqueurs d'heures pour chaque heure
+  for (let hour = 0; hour <= 24; hour++) {
     const hourInMinutes = hour * 60;
     
     // Ne pas afficher les heures hors de la plage visible
@@ -139,13 +122,23 @@ function renderTimeline() {
     // Créer le marqueur d'heure
     const hourMarker = document.createElement('div');
     hourMarker.className = 'hour-marker';
-    hourMarker.textContent = `${hour.toString().padStart(2, '0')}:00`;
     hourMarker.style.top = `${positionPercentage}%`;
+    
+    // Créer l'étiquette d'heure
+    const hourLabel = document.createElement('div');
+    hourLabel.className = 'hour-marker-label';
+    hourLabel.textContent = `${hour.toString().padStart(2, '0')}:00`;
+    hourMarker.appendChild(hourLabel);
     
     hourMarkers.appendChild(hourMarker);
   }
   
-  timeline.appendChild(hourMarkers);
+  // Calculer l'heure actuelle
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTimeInMinutes = currentHour * 60 + currentMinute;
+  const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
   
   // Ajouter l'indicateur d'heure actuelle
   if (currentTimeInMinutes >= minTimeInMinutes && currentTimeInMinutes <= maxTimeInMinutes) {
@@ -160,11 +153,20 @@ function renderTimeline() {
     // Créer le label de temps actuel
     const timeLabel = document.createElement('div');
     timeLabel.className = 'current-time-label';
-    timeLabel.textContent = `${currentTimeStr}`;
+    timeLabel.textContent = currentTimeStr;
     timeLabel.style.top = `${positionPercentage}%`;
     
     timeline.appendChild(timeIndicator);
     timeline.appendChild(timeLabel);
+  }
+  
+  // Trouver l'élément actuel ou prochain
+  let currentIndex = -1;
+  
+  for (let i = 0; i < sortedData.length; i++) {
+    if (sortedData[i].time <= currentTimeStr && !sortedData[i].checked) {
+      currentIndex = i;
+    }
   }
   
   // Afficher les éléments du planning
@@ -191,9 +193,10 @@ function renderTimeline() {
       timelineItem.classList.add('current');
     }
     
-    // Positionner l'élément
+    // Positionner l'élément par le haut à l'horaire exact
     timelineItem.style.top = `${positionPercentage}%`;
     
+    // Créer le contenu de l'élément
     const timelineContent = document.createElement('div');
     timelineContent.className = 'timeline-content';
     
@@ -205,7 +208,6 @@ function renderTimeline() {
     const icon = document.createElement('i');
     if (item.checked) {
       icon.className = 'fas fa-check-circle';
-      timelineContent.style.textDecoration = 'line-through';
       timelineContent.style.opacity = '0.7';
       timelineContent.style.borderLeftColor = '#2ed573';
       timelineContent.style.borderRightColor = '#2ed573';
@@ -239,7 +241,7 @@ function renderTimeline() {
   timeline.dataset.duration = totalDurationInMinutes;
 }
 
-// Fonction pour mettre à jour uniquement l'indicateur de temps
+// La fonction updateTimeIndicator reste inchangée
 function updateTimeIndicator() {
   const now = new Date();
   const currentHour = now.getHours();
