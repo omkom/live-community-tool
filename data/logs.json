@@ -1,6 +1,66 @@
 [
   {
     "type": "INFO",
+    "timestamp": "2025-05-21T02:09:58.752Z",
+    "message": "Statut mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T02:09:58.751Z",
+    "message": "Message diffusé à 9 clients: {\"type\":\"update\",\"target\":\"sta..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T02:09:48.511Z",
+    "message": "Statut mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T02:09:48.510Z",
+    "message": "Message diffusé à 9 clients: {\"type\":\"update\",\"target\":\"sta..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T02:09:43.197Z",
+    "message": "Statut mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T02:09:43.195Z",
+    "message": "Message diffusé à 9 clients: {\"type\":\"update\",\"target\":\"sta..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T02:09:13.952Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T02:09:13.828Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T02:08:39.035Z",
+    "message": "Effet déclenché: pulse"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T02:08:39.035Z",
+    "message": "Message diffusé à 9 clients: {\"type\":\"effect\",\"value\":\"puls..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T02:08:32.665Z",
+    "message": "Effet déclenché: zoom"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T02:08:32.664Z",
+    "message": "Message diffusé à 9 clients: {\"type\":\"effect\",\"value\":\"zoom..."
+  },
+  {
+    "type": "INFO",
     "timestamp": "2025-05-21T01:37:46.568Z",
     "message": "Nouvelle connexion WebSocket: viewer (::1)"
   },

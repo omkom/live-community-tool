@@ -62,15 +62,17 @@
     display: flex;
     flex-direction: row;
     height: calc(100vh - 56px);
-    overflow: hidden;
+    overflow: auto; /* Remplacer 'hidden' par 'auto' pour permettre le défilement si nécessaire */
   }
   
+  /* Améliorer la gestion de l'espace dans les colonnes */
   .column {
     flex: 1;
     padding: 25px;
     overflow-y: auto;
     position: relative;
     transition: all 0.3s ease;
+    max-height: calc(100vh - 106px); /* Empêcher le débordement vertical */
   }
   
   .column:nth-child(odd) {
@@ -490,13 +492,10 @@
   
   /* Logs styles */
   .logs-container {
-    height: 300px;
+    height: 40vh; /* Utiliser une hauteur relative au viewport */
+    min-height: 200px; /* Hauteur minimale */
+    max-height: 500px; /* Hauteur maximale */
     overflow-y: auto;
-    background: var(--dark);
-    border-radius: 4px;
-    padding: 10px;
-    font-family: monospace;
-    font-size: 0.9rem;
   }
   
   .log-entry {
