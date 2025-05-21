@@ -1,23 +1,83 @@
 {
   "planning": [
     {
-      "time": "06:52",
-      "label": "Nouveau moment",
+      "time": "09:00",
+      "label": "Sport & Talksdd",
       "checked": true
     },
     {
-      "time": "08:00",
-      "label": "Introduction",
+      "time": "10:30",
+      "label": "Cuisine MIDI",
       "checked": true
     },
     {
-      "time": "08:30",
-      "label": "Sport",
+      "time": "12:00",
+      "label": "Création Communautaire 1",
+      "checked": true
+    },
+    {
+      "time": "14:00",
+      "label": "Podcast musical (tooPrettyFlacko)",
       "checked": false
     },
     {
-      "time": "11:00",
-      "label": "cusine",
+      "time": "15:30",
+      "label": "Jeu solo narratif",
+      "checked": true
+    },
+    {
+      "time": "17:00",
+      "label": "Jeux avec viewers",
+      "checked": false
+    },
+    {
+      "time": "18:30",
+      "label": "Dîner & Talk",
+      "checked": false
+    },
+    {
+      "time": "20:00",
+      "label": "Radio Libre (Akanedothis)",
+      "checked": true
+    },
+    {
+      "time": "22:00",
+      "label": "Défi communautaire",
+      "checked": false
+    },
+    {
+      "time": "23:30",
+      "label": "Discussion nocturne",
+      "checked": false
+    },
+    {
+      "time": "01:00",
+      "label": "SIESTE 1",
+      "checked": false
+    },
+    {
+      "time": "02:30",
+      "label": "Jeu solo calme",
+      "checked": false
+    },
+    {
+      "time": "04:00",
+      "label": "Création Communautaire 2",
+      "checked": false
+    },
+    {
+      "time": "05:30",
+      "label": "SIESTE 2",
+      "checked": false
+    },
+    {
+      "time": "07:00",
+      "label": "Réveil en douceur",
+      "checked": false
+    },
+    {
+      "time": "08:30",
+      "label": "Clôture du stream",
       "checked": false
     }
   ]
