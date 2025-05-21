@@ -839,6 +839,7 @@ function saveTwitchConfig() {
       updateTwitchForm();
       updateStreamlabsForm();
       setSaveStatus('saved');
+      showToast('Configuration temporaire mise à jour pour cette session uniquement. Modifiez le fichier .env pour des changements permanents.', 'info');
     })
     .catch(error => {
       console.error('Erreur lors de la sauvegarde de la config Twitch:', error);

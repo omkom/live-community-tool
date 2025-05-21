@@ -4,16 +4,13 @@ const tmi = require('tmi.js');
 const io = require('socket.io-client');
 const logger = require('./logger');
 const dotenv = require('dotenv');
-const fs = require('fs');
-const path = require('path');
 
 // Chargement des variables d'environnement
 dotenv.config();
 
-// Configuration
-const CONFIG_PATH = path.join(__dirname, '..', 'data', 'twitch_config.json');
+// Configuration (uniquement depuis les variables d'environnement)
 let config = {
-  enabled: false,
+  enabled: process.env.TWITCH_ENABLED === 'true',
   twitch: {
     clientId: process.env.TWITCH_CLIENT_ID || '',
     clientSecret: process.env.TWITCH_CLIENT_SECRET || '',
@@ -28,16 +25,6 @@ let config = {
   }
 };
 
-// Chargement de la configuration existante
-try {
-  if (fs.existsSync(CONFIG_PATH)) {
-    const savedConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-    config = { ...config, ...savedConfig };
-  }
-} catch (error) {
-  logger.error(`Erreur lors du chargement de la configuration Twitch: ${error.message}`);
-}
-
 // Clients
 let twitchClient = null;
 let streamlabsSocket = null;
@@ -45,21 +32,18 @@ let eventCallbacks = [];
 
 /**
  * Initialiser l'intégration Twitch
- * @param {Object} options Options de configuration
+ * @param {Object} options Options de configuration temporaires (session uniquement)
  * @returns {Promise<boolean>} Succès de l'initialisation
  */
 async function initialize(options = {}) {
   try {
-    // Mise à jour de la configuration
+    // Mise à jour de la configuration en mémoire uniquement
     if (options.twitch) {
       config.twitch = { ...config.twitch, ...options.twitch };
     }
     if (options.streamlabs) {
       config.streamlabs = { ...config.streamlabs, ...options.streamlabs };
     }
-    
-    // Sauvegarder la configuration
-    saveConfig();
     
     // Vérifier si l'intégration est activée
     if (!config.enabled) {
@@ -86,25 +70,6 @@ async function initialize(options = {}) {
   } catch (error) {
     logger.error(`Erreur lors de l'initialisation Twitch/Streamlabs: ${error.message}`);
     return false;
-  }
-}
-
-/**
- * Sauvegarder la configuration
- */
-function saveConfig() {
-  try {
-    // Créer le dossier data s'il n'existe pas
-    const dataDir = path.dirname(CONFIG_PATH);
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    
-    // Sauvegarder la configuration
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-    logger.log('Configuration Twitch/Streamlabs sauvegardée');
-  } catch (error) {
-    logger.error(`Erreur lors de la sauvegarde de la configuration: ${error.message}`);
   }
 }
 
@@ -623,46 +588,45 @@ async function getStreamInfo() {
  * @param {boolean} enabled État d'activation
  */
 function setEnabled(enabled) {
-  config.enabled = !!enabled;
-  saveConfig();
-  
-  if (config.enabled) {
-    initialize();
-  } else {
-    // Déconnecter le client Twitch
-    if (twitchClient) {
-      twitchClient.disconnect();
-      twitchClient = null;
+    config.enabled = !!enabled;
+    
+    if (config.enabled) {
+      initialize();
+    } else {
+      // Déconnecter le client Twitch
+      if (twitchClient) {
+        twitchClient.disconnect();
+        twitchClient = null;
+      }
+      
+      // Déconnecter le socket Streamlabs
+      if (streamlabsSocket) {
+        streamlabsSocket.disconnect();
+        streamlabsSocket = null;
+      }
     }
     
-    // Déconnecter le socket Streamlabs
-    if (streamlabsSocket) {
-      streamlabsSocket.disconnect();
-      streamlabsSocket = null;
-    }
+    logger.log(`Intégration Twitch/Streamlabs ${config.enabled ? 'activée' : 'désactivée'}`);
+    return config.enabled;
   }
   
-  logger.log(`Intégration Twitch/Streamlabs ${config.enabled ? 'activée' : 'désactivée'}`);
-  return config.enabled;
-}
-
-/**
- * Obtenir la configuration actuelle
- * @returns {Object} Configuration
- */
-function getConfig() {
-  return { ...config };
-}
-
-// Exposer les fonctions
-module.exports = {
-  initialize,
-  sendTwitchMessage,
-  triggerStreamlabsEffect,
-  on,
-  getStreamInfo,
-  setEnabled,
-  getConfig,
-  updateDonationStats,
-  updateSubscriptionStats
-};
+  /**
+   * Obtenir la configuration actuelle
+   * @returns {Object} Configuration
+   */
+  function getConfig() {
+    return { ...config };
+  }
+  
+  // Exposer les fonctions
+  module.exports = {
+    initialize,
+    sendTwitchMessage,
+    triggerStreamlabsEffect,
+    on,
+    getStreamInfo,
+    setEnabled,
+    getConfig,
+    updateDonationStats,
+    updateSubscriptionStats
+  };

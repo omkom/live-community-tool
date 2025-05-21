@@ -607,3 +607,20 @@ tr:hover {
 ::-webkit-scrollbar-track {
   background: var(--darker);
 }
+
+.alert {
+  padding: 12px;
+  margin-bottom: 15px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.alert-info {
+  background-color: rgba(33, 150, 243, 0.1);
+  border-left: 3px solid #2196F3;
+  color: #e0e0e0;
+}
+
+.alert i {
+  margin-right: 8px;
+}
