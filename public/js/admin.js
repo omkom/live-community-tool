@@ -1,10 +1,44 @@
 // public/js/admin.js
+
 // Variables globales
 let planningData = [];
 let ws = null;
 let connectionStatus = 'disconnected';
-let planningAutoSaveTimeout = null;
-let statusAutoSaveTimeout = null;
+let saveStatus = 'idle'; // 'idle', 'saving', 'saved', 'error'
+let saveTimeout = null;
+let saveDelay = 1000; // délai d'attente avant sauvegarde après changements
+let eventQueue = {}; // queue pour les sauvegardes par type
+
+// Intégration Twitch/Streamlabs
+let twitchConfig = {
+  enabled: false,
+  twitch: {
+    clientId: '',
+    clientSecret: '',
+    username: '',
+    oauthToken: '',
+    channelName: ''
+  },
+  streamlabs: {
+    socketToken: '',
+    accessToken: ''
+  }
+};
+
+// Configuration des événements
+let eventsConfig = {
+  donationEffect: 'tada',
+  subEffect: 'pulse',
+  cheerEffect: 'bounce',
+  followEffect: 'none',
+  raidEffect: 'shake',
+  displayMessages: true,
+  autoUpdateStats: true
+};
+
+// File d'événements en direct
+const liveEvents = [];
+const MAX_EVENTS = 50;
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,6 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadPlanning();
   loadStatus();
   initEventListeners();
+  initAutoSave();
+  loadTwitchConfig();
+  loadEventsConfig();
   startClock();
 });
 
@@ -61,19 +98,97 @@ function initWebSocket() {
       const data = JSON.parse(event.data);
       console.log('Message reçu:', data);
       
+      // Traiter les événements Twitch/Streamlabs
+      handleWebSocketEvent(data);
+      
       if (data.type === 'update') {
         if (data.target === 'planning') {
           loadPlanning();
         } else if (data.target === 'status') {
           loadStatus();
         }
-      } else if (data.type === 'init') {
-        console.log('Connexion initialisée:', data);
       }
     } catch (e) {
       console.error('Erreur de parsing WebSocket:', e, event.data);
     }
   };
+}
+
+// Initialisation de l'autosave pour tous les champs concernés
+function initAutoSave() {
+  document.querySelectorAll('.autosave').forEach(element => {
+    const saveType = element.dataset.autosave;
+    
+    if (element.tagName === 'INPUT') {
+      if (element.type === 'checkbox') {
+        element.addEventListener('change', () => queueSave(saveType));
+      } else {
+        element.addEventListener('input', () => queueSave(saveType));
+        element.addEventListener('change', () => queueSave(saveType, true)); // force save on blur/change
+      }
+    } else if (element.tagName === 'SELECT') {
+      element.addEventListener('change', () => queueSave(saveType));
+    } else if (element.tagName === 'TEXTAREA') {
+      element.addEventListener('input', () => queueSave(saveType));
+      element.addEventListener('change', () => queueSave(saveType, true));
+    }
+  });
+}
+
+// Mettre en file d'attente une sauvegarde avec debouncing par type
+function queueSave(saveType, immediate = false) {
+  if (eventQueue[saveType]) {
+    clearTimeout(eventQueue[saveType]);
+  }
+  
+  setSaveStatus('saving');
+  
+  const delay = immediate ? 0 : saveDelay;
+  
+  eventQueue[saveType] = setTimeout(() => {
+    switch (saveType) {
+      case 'donation':
+        updateStatus();
+        break;
+      case 'planning':
+        savePlanning();
+        break;
+      case 'integration':
+        saveTwitchConfig();
+        break;
+      case 'event-config':
+        saveEventsConfig();
+        break;
+    }
+    
+    delete eventQueue[saveType];
+  }, delay);
+}
+
+// Mettre à jour le statut de sauvegarde visuel
+function setSaveStatus(status) {
+  saveStatus = status;
+  
+  const saveIndicator = document.getElementById('save-status');
+  
+  saveIndicator.classList.remove('saving', 'saved', 'error');
+  
+  if (status === 'saving') {
+    saveIndicator.classList.add('saving');
+    saveIndicator.title = 'Sauvegarde en cours...';
+  } else if (status === 'saved') {
+    saveIndicator.classList.add('saved');
+    saveIndicator.title = 'Modifications enregistrées';
+    
+    setTimeout(() => {
+      saveIndicator.style.opacity = '0';
+    }, 2000);
+  } else if (status === 'error') {
+    saveIndicator.classList.add('error');
+    saveIndicator.title = 'Erreur de sauvegarde';
+  } else {
+    saveIndicator.style.opacity = '0';
+  }
 }
 
 // Définir le statut de connexion
@@ -148,7 +263,7 @@ function renderPlanningTable() {
     timeInput.addEventListener('change', () => {
       planningData[index].time = timeInput.value;
       renderTimeline();
-      autoSavePlanning();
+      queueSave('planning');
     });
     timeCell.appendChild(timeInput);
     
@@ -160,36 +275,26 @@ function renderPlanningTable() {
     labelInput.addEventListener('input', () => {
       planningData[index].label = labelInput.value;
       renderTimeline();
-      autoSavePlanning();
+      queueSave('planning');
     });
     labelCell.appendChild(labelInput);
     
     // Cellule statut
     const statusCell = document.createElement('td');
+    statusCell.style.textAlign = 'center';
     const statusInput = document.createElement('input');
     statusInput.type = 'checkbox';
     statusInput.checked = item.checked;
     statusInput.addEventListener('change', () => {
       planningData[index].checked = statusInput.checked;
       renderTimeline();
-      autoSavePlanning();
+      queueSave('planning');
     });
     statusCell.appendChild(statusInput);
     
     // Cellule actions
     const actionsCell = document.createElement('td');
-    
-    const upBtn = document.createElement('button');
-    upBtn.className = 'btn btn-icon';
-    upBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
-    upBtn.title = 'Monter';
-    upBtn.addEventListener('click', () => moveRow(index, -1));
-    
-    const downBtn = document.createElement('button');
-    downBtn.className = 'btn btn-icon';
-    downBtn.innerHTML = '<i class="fas fa-arrow-down"></i>';
-    downBtn.title = 'Descendre';
-    downBtn.addEventListener('click', () => moveRow(index, 1));
+    actionsCell.style.textAlign = 'right';
     
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn btn-icon';
@@ -200,12 +305,10 @@ function renderPlanningTable() {
         planningData.splice(index, 1);
         renderPlanningTable();
         renderTimeline();
-        autoSavePlanning();
+        queueSave('planning');
       }
     });
     
-    actionsCell.appendChild(upBtn);
-    actionsCell.appendChild(downBtn);
     actionsCell.appendChild(deleteBtn);
     
     // Ajout des cellules à la ligne
@@ -216,22 +319,6 @@ function renderPlanningTable() {
     
     tbody.appendChild(row);
   });
-}
-
-// Déplacer une ligne vers le haut ou le bas
-function moveRow(index, direction) {
-  const newIndex = index + direction;
-  
-  if (newIndex < 0 || newIndex >= planningData.length) {
-    return; // Hors limites
-  }
-  
-  // Échanger les éléments
-  [planningData[index], planningData[newIndex]] = [planningData[newIndex], planningData[index]];
-  
-  renderPlanningTable();
-  renderTimeline();
-  autoSavePlanning();
 }
 
 // Rendu de la timeline
@@ -254,7 +341,9 @@ function renderTimeline() {
   
   for (let i = 0; i < sortedData.length; i++) {
     if (sortedData[i].time <= currentTime) {
-      currentIndex = i;
+      if (!sortedData[i].checked) {
+        currentIndex = i;
+      }
     } else {
       nextIndex = i;
       break;
@@ -269,6 +358,8 @@ function renderTimeline() {
       timelineItem.classList.add('done');
     } else if (index === currentIndex) {
       timelineItem.classList.add('current');
+    } else if (index === nextIndex) {
+      timelineItem.classList.add('next');
     }
     
     const timeSpan = document.createElement('span');
@@ -320,36 +411,10 @@ function loadStatus() {
     });
 }
 
-// Auto-sauvegarde du planning avec throttling
-function autoSavePlanning() {
-  if (planningAutoSaveTimeout) {
-    clearTimeout(planningAutoSaveTimeout);
-  }
-  
-  planningAutoSaveTimeout = setTimeout(() => {
-    savePlanning(true); // Passer true pour indiquer que c'est un auto-save
-  }, 2000);
-}
-
-// Auto-sauvegarde du statut avec throttling
-function autoSaveStatus() {
-  if (statusAutoSaveTimeout) {
-    clearTimeout(statusAutoSaveTimeout);
-  }
-  
-  statusAutoSaveTimeout = setTimeout(() => {
-    updateStatus(true); // Passer true pour indiquer que c'est un auto-save
-  }, 2000);
-}
-
 // Sauvegarde du planning
-function savePlanning(autoSave = false) {
-  // Ne demander confirmation que si c'est une sauvegarde manuelle et que le planning est vide
-  if (planningData.length === 0 && !autoSave) {
-    if (!confirm('Le planning est vide. Confirmer quand même ?')) {
-      return;
-    }
-  }
+function savePlanning() {
+  // Trier par heure
+  planningData.sort((a, b) => a.time.localeCompare(b.time));
   
   fetch('/api/planning', {
     method: 'POST',
@@ -365,21 +430,19 @@ function savePlanning(autoSave = false) {
       return response.json();
     })
     .then(data => {
-      // N'afficher le toast que si ce n'est pas une auto-sauvegarde
-      if (!autoSave) {
-        showToast('Planning enregistré avec succès', 'success');
-      }
+      setSaveStatus('saved');
     })
     .catch(error => {
       console.error('Erreur lors de la sauvegarde du planning:', error);
+      setSaveStatus('error');
       showToast(`Erreur: ${error.message}`, 'error');
     });
 }
 
 // Mise à jour du statut
-function updateStatus(autoSave = false) {
-  const donationTotal = parseInt(document.getElementById('donation_total').value, 10) || 0;
-  const donationGoal = parseInt(document.getElementById('donation_goal').value, 10) || 1000;
+function updateStatus() {
+  const donationTotal = parseFloat(document.getElementById('donation_total').value) || 0;
+  const donationGoal = parseFloat(document.getElementById('donation_goal').value) || 1000;
   const subsTotal = parseInt(document.getElementById('subs_total').value, 10) || 0;
   const subsGoal = parseInt(document.getElementById('subs_goal').value, 10) || 50;
   const streamStartTimeInput = document.getElementById('stream_start_time');
@@ -412,14 +475,12 @@ function updateStatus(autoSave = false) {
       return response.json();
     })
     .then(data => {
-      // N'afficher le toast que si ce n'est pas une auto-sauvegarde
-      if (!autoSave) {
-        showToast('Statut mis à jour avec succès', 'success');
-      }
+      setSaveStatus('saved');
       updateDonationProgress(donationTotal, donationGoal, subsTotal, subsGoal);
     })
     .catch(error => {
       console.error('Erreur lors de la mise à jour du statut:', error);
+      setSaveStatus('error');
       showToast(`Erreur: ${error.message}`, 'error');
     });
 }
@@ -454,12 +515,7 @@ function initEventListeners() {
     
     renderPlanningTable();
     renderTimeline();
-    autoSavePlanning();
-  });
-  
-  // Bouton sauvegarde du planning
-  document.getElementById('savePlanning').addEventListener('click', () => {
-    savePlanning();
+    queueSave('planning');
   });
   
   // Bouton tri du planning
@@ -468,12 +524,12 @@ function initEventListeners() {
     renderPlanningTable();
     renderTimeline();
     showToast('Planning trié par ordre chronologique', 'info');
-    autoSavePlanning();
+    queueSave('planning');
   });
   
-  // Bouton mise à jour du statut
-  document.getElementById('updateStatus').addEventListener('click', () => {
-    updateStatus();
+  // Bouton pour aller à l'élément courant
+  document.getElementById('jumpToCurrent').addEventListener('click', () => {
+    scrollToCurrentItem();
   });
   
   // Boutons d'effets
@@ -501,14 +557,22 @@ function initEventListeners() {
     loadLogs();
   });
   
-  // Ajouter des event listeners pour l'auto-save du statut
-  document.getElementById('donation_total').addEventListener('input', autoSaveStatus);
-  document.getElementById('donation_goal').addEventListener('input', autoSaveStatus);
-  document.getElementById('subs_total').addEventListener('input', autoSaveStatus);
-  document.getElementById('subs_goal').addEventListener('input', autoSaveStatus);
-  if (document.getElementById('stream_start_time')) {
-    document.getElementById('stream_start_time').addEventListener('change', autoSaveStatus);
-  }
+  // Test de connexion Twitch
+  document.getElementById('test-twitch-connection').addEventListener('click', () => {
+    testTwitchConnection();
+  });
+  
+  // Test de connexion Streamlabs
+  document.getElementById('test-streamlabs-connection').addEventListener('click', () => {
+    testStreamlabsConnection();
+  });
+  
+  // Bouton pour effacer les événements
+  document.getElementById('clear-events').addEventListener('click', () => {
+    liveEvents.length = 0;
+    renderLiveEvents();
+    showToast('Liste d\'événements effacée', 'info');
+  });
 }
 
 // Déclenchement d'un effet
@@ -627,6 +691,19 @@ function renderLogs(logs) {
   logsContainer.scrollTop = logsContainer.scrollHeight;
 }
 
+// Fonction pour faire défiler jusqu'à l'élément courant dans la timeline
+function scrollToCurrentItem() {
+  const currentItem = document.querySelector('.timeline-item.current');
+  
+  if (currentItem) {
+    const container = document.getElementById('timelineView');
+    container.scrollTop = currentItem.offsetTop - (container.clientHeight / 2) + (currentItem.clientHeight / 2);
+  } else {
+    // Si aucun élément courant, scroll vers le haut
+    document.getElementById('timelineView').scrollTop = 0;
+  }
+}
+
 // Horloge du stream
 function startClock() {
   const updateClock = () => {
@@ -666,6 +743,365 @@ function showToast(message, type = 'info') {
       container.removeChild(toast);
     }, 300);
   }, 3000);
+}
+
+// ----- INTÉGRATION TWITCH/STREAMLABS -----
+
+// Chargement des configurations
+function loadTwitchConfig() {
+  fetch('/api/twitch/config')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      twitchConfig = data.config || twitchConfig;
+      updateTwitchForm();
+      updateStreamlabsForm();
+    })
+    .catch(error => {
+      console.error('Erreur lors du chargement de la config Twitch:', error);
+      showToast('Erreur lors du chargement de la configuration Twitch', 'error');
+    });
+}
+
+// Mise à jour du formulaire Twitch
+function updateTwitchForm() {
+  document.getElementById('twitch-enabled').checked = twitchConfig.enabled;
+  document.getElementById('twitch_client_id').value = twitchConfig.twitch?.clientId || '';
+  document.getElementById('twitch_client_secret').value = twitchConfig.twitch?.clientSecret || '';
+  document.getElementById('twitch_channel').value = twitchConfig.twitch?.channelName || '';
+  document.getElementById('twitch_username').value = twitchConfig.twitch?.username || '';
+  document.getElementById('twitch_oauth_token').value = twitchConfig.twitch?.oauthToken || '';
+  
+  // Mettre à jour l'indicateur de statut
+  const statusBadge = document.getElementById('twitch-status');
+  if (twitchConfig.enabled) {
+    statusBadge.textContent = 'Activé';
+    statusBadge.classList.add('connected');
+  } else {
+    statusBadge.textContent = 'Désactivé';
+    statusBadge.classList.remove('connected');
+  }
+}
+
+// Mise à jour du formulaire Streamlabs
+function updateStreamlabsForm() {
+  document.getElementById('streamlabs-enabled').checked = twitchConfig.enabled; // Même activation que Twitch
+  document.getElementById('streamlabs_socket_token').value = twitchConfig.streamlabs?.socketToken || '';
+  document.getElementById('streamlabs_access_token').value = twitchConfig.streamlabs?.accessToken || '';
+  
+  // Mettre à jour l'indicateur de statut
+  const statusBadge = document.getElementById('streamlabs-status');
+  if (twitchConfig.enabled && twitchConfig.streamlabs?.socketToken) {
+    statusBadge.textContent = 'Activé';
+    statusBadge.classList.add('connected');
+  } else {
+    statusBadge.textContent = 'Désactivé';
+    statusBadge.classList.remove('connected');
+  }
+}
+
+// Sauvegarde de la configuration Twitch et Streamlabs (combinée pour autosave)
+function saveTwitchConfig() {
+  const config = {
+    enabled: document.getElementById('twitch-enabled').checked,
+    twitch: {
+      clientId: document.getElementById('twitch_client_id').value,
+      clientSecret: document.getElementById('twitch_client_secret').value,
+      channelName: document.getElementById('twitch_channel').value,
+      username: document.getElementById('twitch_username').value,
+      oauthToken: document.getElementById('twitch_oauth_token').value
+    },
+    streamlabs: {
+      socketToken: document.getElementById('streamlabs_socket_token').value,
+      accessToken: document.getElementById('streamlabs_access_token').value
+    }
+  };
+  
+  fetch('/api/twitch/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config)
+  })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(err => {
+          throw new Error(err.error || `Erreur HTTP ${response.status}`);
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      twitchConfig = data.config;
+      updateTwitchForm();
+      updateStreamlabsForm();
+      setSaveStatus('saved');
+    })
+    .catch(error => {
+      console.error('Erreur lors de la sauvegarde de la config Twitch:', error);
+      setSaveStatus('error');
+      showToast(`Erreur: ${error.message}`, 'error');
+    });
+}
+
+// Test de connexion Twitch
+function testTwitchConnection() {
+  showToast('Test de connexion Twitch en cours...', 'info');
+  
+  fetch('/api/twitch/test', {
+    method: 'POST'
+  })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(err => {
+          throw new Error(err.error || `Erreur HTTP ${response.status}`);
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        showToast('Connexion Twitch réussie!', 'success');
+      } else {
+        showToast(`Erreur de connexion: ${data.message}`, 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Erreur de test de connexion Twitch:', error);
+      showToast(`Erreur: ${error.message}`, 'error');
+    });
+}
+
+// Test de connexion Streamlabs
+function testStreamlabsConnection() {
+  showToast('Test de connexion Streamlabs en cours...', 'info');
+  
+  fetch('/api/streamlabs/test', {
+    method: 'POST'
+  })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(err => {
+          throw new Error(err.error || `Erreur HTTP ${response.status}`);
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        showToast('Connexion Streamlabs réussie!', 'success');
+      } else {
+        showToast(`Erreur de connexion: ${data.message}`, 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Erreur de test de connexion Streamlabs:', error);
+      showToast(`Erreur: ${error.message}`, 'error');
+    });
+}
+
+// Chargement de la configuration des événements
+function loadEventsConfig() {
+  // Charger depuis le localStorage
+  const savedConfig = localStorage.getItem('eventsConfig');
+  if (savedConfig) {
+    eventsConfig = { ...eventsConfig, ...JSON.parse(savedConfig) };
+  }
+  
+  // Mise à jour des formulaires
+  document.getElementById('event-donation-effect').value = eventsConfig.donationEffect;
+  document.getElementById('event-sub-effect').value = eventsConfig.subEffect;
+  document.getElementById('event-cheer-effect').value = eventsConfig.cheerEffect;
+  document.getElementById('display-messages').checked = eventsConfig.displayMessages;
+  document.getElementById('auto-update-stats').checked = eventsConfig.autoUpdateStats;
+}
+
+// Sauvegarde de la configuration des événements
+function saveEventsConfig() {
+  eventsConfig = {
+    donationEffect: document.getElementById('event-donation-effect').value,
+    subEffect: document.getElementById('event-sub-effect').value,
+    cheerEffect: document.getElementById('event-cheer-effect').value,
+    displayMessages: document.getElementById('display-messages').checked,
+    autoUpdateStats: document.getElementById('auto-update-stats').checked
+  };
+  
+  // Sauvegarder dans le localStorage
+  localStorage.setItem('eventsConfig', JSON.stringify(eventsConfig));
+  setSaveStatus('saved');
+}
+
+// Ajouter un événement à la liste
+function addLiveEvent(eventType, eventData) {
+  // Formatage de l'heure
+  const now = new Date();
+  const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+  
+  // Créer l'objet événement
+  const event = {
+    type: eventType,
+    time: timeStr,
+    data: eventData,
+    date: now
+  };
+  
+  // Ajouter au tableau (en limitant la taille)
+  liveEvents.unshift(event);
+  if (liveEvents.length > MAX_EVENTS) {
+    liveEvents.pop();
+  }
+  
+  // Mettre à jour l'affichage
+  renderLiveEvents();
+  
+  // Déclencher les effets si configurés
+  triggerEventEffects(eventType, eventData);
+}
+
+// Traitement des effets pour les événements
+function triggerEventEffects(eventType, eventData) {
+  let effectType = null;
+  let message = null;
+  
+  // Déterminer le type d'effet selon l'événement
+  switch (eventType) {
+    case 'donation':
+      effectType = eventsConfig.donationEffect;
+      message = `${eventData.username} a donné ${eventData.amount}${eventData.currency || '€'}!`;
+      
+      // Mettre à jour les statistiques si configuré
+      if (eventsConfig.autoUpdateStats) {
+        updateDonationStats(parseFloat(eventData.amount));
+      }
+      break;
+      
+    case 'subscription':
+      effectType = eventsConfig.subEffect;
+      message = `${eventData.username} s'est abonné${eventData.isResub ? ' pour ' + eventData.months + ' mois' : ''}!`;
+      
+      // Mettre à jour les statistiques si configuré
+      if (eventsConfig.autoUpdateStats) {
+        const subsTotal = parseInt(document.getElementById('subs_total').value || '0', 10) + 1;
+        document.getElementById('subs_total').value = subsTotal;
+        queueSave('donation');
+      }
+      break;
+      
+    case 'cheer':
+      effectType = eventsConfig.cheerEffect;
+      message = `${eventData.username} a donné ${eventData.bits} bits!`;
+      
+      // Mettre à jour les statistiques si configuré (conversion bits en euros)
+      if (eventsConfig.autoUpdateStats) {
+        const donationAmount = eventData.bits / 100; // Approximativement 100 bits = 1€
+        const donationTotal = parseFloat(document.getElementById('donation_total').value || '0') + donationAmount;
+        document.getElementById('donation_total').value = donationTotal.toFixed(2);
+        queueSave('donation');
+      }
+      break;
+  }
+  
+  // Déclencher l'effet si configuré
+  if (effectType && effectType !== 'none') {
+    triggerEffect(effectType);
+  }
+  
+  // Envoyer le message si configuré
+  if (eventsConfig.displayMessages && message) {
+    sendMessage(message);
+  }
+}
+
+// Rendu de la liste des événements en direct
+function renderLiveEvents() {
+  const container = document.getElementById('live-events');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  if (liveEvents.length === 0) {
+    container.innerHTML = '<div class="empty-events">Aucun événement pour le moment</div>';
+    return;
+  }
+  
+  // Icônes pour les différents types d'événements
+  const icons = {
+    donation: '<i class="fas fa-donate" style="color: #4CAF50;"></i>',
+    subscription: '<i class="fas fa-star" style="color: #9C27B0;"></i>',
+    follow: '<i class="fas fa-user-plus" style="color: #2196F3;"></i>',
+    cheer: '<i class="fas fa-gem" style="color: #FF9800;"></i>',
+    raid: '<i class="fas fa-users" style="color: #E91E63;"></i>'
+  };
+  
+  // Afficher les événements
+  liveEvents.forEach(event => {
+    const eventElement = document.createElement('div');
+    eventElement.className = `event-item ${event.type}`;
+    
+    // Formater le contenu selon le type d'événement
+    let eventContent = '';
+    switch (event.type) {
+      case 'donation':
+        eventContent = `<strong>${event.data.username}</strong> a fait un don de <strong>${event.data.amount}${event.data.currency || '€'}</strong>`;
+        if (event.data.message) {
+          eventContent += ` : "${event.data.message}"`;
+        }
+        break;
+        
+      case 'subscription':
+        if (event.data.isResub) {
+          eventContent = `<strong>${event.data.username}</strong> s'est réabonné pour <strong>${event.data.months} mois</strong>`;
+        } else {
+          eventContent = `<strong>${event.data.username}</strong> s'est abonné`;
+        }
+        if (event.data.message) {
+          eventContent += ` : "${event.data.message}"`;
+        }
+        break;
+        
+      case 'follow':
+        eventContent = `<strong>${event.data.username}</strong> suit maintenant la chaîne`;
+        break;
+        
+      case 'cheer':
+        eventContent = `<strong>${event.data.username}</strong> a envoyé <strong>${event.data.bits} bits</strong>`;
+        if (event.data.message) {
+          eventContent += ` : "${event.data.message}"`;
+        }
+        break;
+        
+      case 'raid':
+        eventContent = `<strong>${event.data.username}</strong> a raid avec <strong>${event.data.viewers} viewers</strong>`;
+        break;
+    }
+    
+    eventElement.innerHTML = `
+      <div class="event-icon">${icons[event.type] || '<i class="fas fa-bell"></i>'}</div>
+      <div class="event-content">
+        <div class="event-type">${event.type.toUpperCase()}</div>
+        <div>${eventContent}</div>
+      </div>
+      <div class="event-time">${event.time}</div>
+    `;
+    
+    container.appendChild(eventElement);
+  });
+}
+
+// Traitement des messages WebSocket pour les événements
+function handleWebSocketEvent(data) {
+  if (!data || !data.type) return;
+  
+  // Les événements liés à Twitch/Streamlabs
+  if (data.type === 'twitch_event' || data.type === 'streamlabs_event') {
+    const { eventType, eventData } = data;
+    if (eventType && eventData) {
+      addLiveEvent(eventType, eventData);
+    }
+  }
 }
 
 // Chargement initial des logs

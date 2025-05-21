@@ -17,6 +17,7 @@
     <div class="stream-title">
       <span id="stream-clock">00:00:00</span>
       <span id="connection-status" title="Statut de connexion">⚪</span>
+      <span id="save-status" class="save-indicator" title="Statut de sauvegarde"><i class="fas fa-save"></i></span>
     </div>
   </header>
 
@@ -26,13 +27,22 @@
     <div class="column">
       <h2><i class="fas fa-calendar-check"></i> Planning du stream</h2>
       
+      <div class="actions-bar">
+        <button class="btn btn-add" id="addPlanningRow">
+          <i class="fas fa-plus"></i> Ajouter
+        </button>
+        <button class="btn btn-text" id="sortPlanning">
+          <i class="fas fa-sort"></i> Trier par heure
+        </button>
+      </div>
+      
       <table id="planningTable">
         <thead>
           <tr>
             <th class="time-col">Heure</th>
             <th>Activité</th>
-            <th class="status-col">Statut</th>
-            <th class="actions-col">Actions</th>
+            <th class="status-col">Fait</th>
+            <th class="actions-col"></th>
           </tr>
         </thead>
         <tbody>
@@ -40,23 +50,14 @@
         </tbody>
       </table>
       
-      <div class="btn-group">
-        <button class="btn btn-add" id="addPlanningRow">
-          <i class="fas fa-plus"></i> Ajouter
-        </button>
-        <button class="btn" id="savePlanning">
-          <i class="fas fa-save"></i> Enregistrer
-        </button>
-        <button class="btn btn-text" id="sortPlanning">
-          <i class="fas fa-sort"></i> Trier par heure
-        </button>
-      </div>
-      
       <div class="card" id="timeline-preview">
         <div class="card-header">
           <div class="card-title">
             <i class="fas fa-hourglass-half"></i> Timeline actuelle
           </div>
+          <button class="btn btn-sm" id="jumpToCurrent">
+            <i class="fas fa-clock"></i> Actuellement
+          </button>
         </div>
         <div class="timeline" id="timelineView">
           <!-- Timeline générée en JS -->
@@ -72,6 +73,9 @@
         </div>
         <div class="tab" data-tab="interactions">
           <i class="fas fa-bolt"></i> Interactions
+        </div>
+        <div class="tab" data-tab="integrations">
+          <i class="fas fa-plug"></i> Intégrations
         </div>
         <div class="tab" data-tab="logs">
           <i class="fas fa-list"></i> Logs
@@ -98,12 +102,12 @@
           
           <div class="form-group">
             <label for="donation_total">Montant actuel (€)</label>
-            <input type="number" id="donation_total" min="0" step="1">
+            <input type="number" id="donation_total" min="0" step="1" class="autosave" data-autosave="donation">
           </div>
           
           <div class="form-group">
             <label for="donation_goal">Objectif (€)</label>
-            <input type="number" id="donation_goal" min="0" step="100">
+            <input type="number" id="donation_goal" min="0" step="100" class="autosave" data-autosave="donation">
           </div>
         </div>
         
@@ -125,18 +129,28 @@
           
           <div class="form-group">
             <label for="subs_total">Nombre actuel</label>
-            <input type="number" id="subs_total" min="0" step="1">
+            <input type="number" id="subs_total" min="0" step="1" class="autosave" data-autosave="donation">
           </div>
           
           <div class="form-group">
             <label for="subs_goal">Objectif</label>
-            <input type="number" id="subs_goal" min="0" step="5">
+            <input type="number" id="subs_goal" min="0" step="5" class="autosave" data-autosave="donation">
           </div>
         </div>
         
-        <button class="btn" id="updateStatus">
-          <i class="fas fa-sync-alt"></i> Mettre à jour
-        </button>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-clock"></i> Timing du Stream
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="stream_start_time">Heure de début du stream</label>
+            <input type="datetime-local" id="stream_start_time" class="autosave" data-autosave="donation">
+            <small class="form-text">Format: YYYY-MM-DDThh:mm (laissez vide pour minuit)</small>
+          </div>
+        </div>
       </div>
       
       <!-- Tab Interactions -->
@@ -176,22 +190,6 @@
           </div>
         </div>
         
-        <!-- Ajouter ce bloc dans la section "Cagnotte" après les autres champs -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <i class="fas fa-clock"></i> Timing du Stream
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label for="stream_start_time">Heure de début du stream</label>
-            <input type="datetime-local" id="stream_start_time">
-            <small class="form-text">Format: YYYY-MM-DDThh:mm (laissez vide pour utiliser minuit du jour actuel)</small>
-          </div>
-        </div>
-        
-        
         <div class="card">
           <div class="card-header">
             <div class="card-title">
@@ -209,6 +207,167 @@
           <button class="btn" id="sendMessage">
             <i class="fas fa-paper-plane"></i> Envoyer
           </button>
+        </div>
+      </div>
+      
+      <!-- Tab Integrations -->
+      <div class="tab-content" id="integrations-tab">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fab fa-twitch"></i> Configuration Twitch
+            </div>
+            <div class="toggle-container">
+              <label class="toggle-switch">
+                <input type="checkbox" id="twitch-enabled" class="autosave" data-autosave="integration">
+                <span class="toggle-slider"></span>
+              </label>
+              <span id="twitch-status" class="status-badge">Désactivé</span>
+            </div>
+          </div>
+          
+          <div id="twitch-config-form">
+            <div class="form-group">
+              <label for="twitch_client_id">Client ID</label>
+              <input type="text" id="twitch_client_id" placeholder="Twitch Client ID" class="autosave" data-autosave="integration">
+            </div>
+            
+            <div class="form-group">
+              <label for="twitch_client_secret">Client Secret</label>
+              <input type="password" id="twitch_client_secret" placeholder="Twitch Client Secret" class="autosave" data-autosave="integration">
+            </div>
+            
+            <div class="form-group">
+              <label for="twitch_channel">Nom de la chaîne</label>
+              <input type="text" id="twitch_channel" placeholder="Nom d'utilisateur Twitch" class="autosave" data-autosave="integration">
+            </div>
+            
+            <div class="form-group">
+              <label for="twitch_username">Bot Username</label>
+              <input type="text" id="twitch_username" placeholder="Nom d'utilisateur du bot" class="autosave" data-autosave="integration">
+            </div>
+            
+            <div class="form-group">
+              <label for="twitch_oauth_token">Token OAuth</label>
+              <input type="password" id="twitch_oauth_token" placeholder="oauth:..." class="autosave" data-autosave="integration">
+              <small class="form-text">Obtenir un token sur <a href="https://twitchapps.com/tmi/" target="_blank">twitchapps.com/tmi</a></small>
+            </div>
+            
+            <div class="form-actions">
+              <button class="btn" id="test-twitch-connection">
+                <i class="fas fa-vial"></i> Tester
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-broadcast-tower"></i> Configuration Streamlabs
+            </div>
+            <div class="toggle-container">
+              <label class="toggle-switch">
+                <input type="checkbox" id="streamlabs-enabled" class="autosave" data-autosave="integration">
+                <span class="toggle-slider"></span>
+              </label>
+              <span id="streamlabs-status" class="status-badge">Désactivé</span>
+            </div>
+          </div>
+          
+          <div id="streamlabs-config-form">
+            <div class="form-group">
+              <label for="streamlabs_socket_token">Socket Token</label>
+              <input type="password" id="streamlabs_socket_token" placeholder="Streamlabs Socket API Token" class="autosave" data-autosave="integration">
+              <small class="form-text">Depuis le tableau de bord Streamlabs → Settings → API Settings</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="streamlabs_access_token">Access Token (optionnel)</label>
+              <input type="password" id="streamlabs_access_token" placeholder="Streamlabs Access Token" class="autosave" data-autosave="integration">
+            </div>
+            
+            <div class="form-actions">
+              <button class="btn" id="test-streamlabs-connection">
+                <i class="fas fa-vial"></i> Tester
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-sliders-h"></i> Paramètres des événements
+            </div>
+          </div>
+          
+          <div id="events-config">
+            <div class="form-group">
+              <label for="event-donation-effect">Effet pour les dons</label>
+              <select id="event-donation-effect" class="autosave" data-autosave="event-config">
+                <option value="tada">Confetti</option>
+                <option value="flash">Flash</option>
+                <option value="zoom">Zoom</option>
+                <option value="shake">Shake</option>
+                <option value="bounce">Bounce</option>
+                <option value="pulse">Pulse</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="event-sub-effect">Effet pour les abonnements</label>
+              <select id="event-sub-effect" class="autosave" data-autosave="event-config">
+                <option value="pulse">Pulse</option>
+                <option value="tada">Confetti</option>
+                <option value="flash">Flash</option>
+                <option value="zoom">Zoom</option>
+                <option value="shake">Shake</option>
+                <option value="bounce">Bounce</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="event-cheer-effect">Effet pour les bits (cheers)</label>
+              <select id="event-cheer-effect" class="autosave" data-autosave="event-config">
+                <option value="bounce">Bounce</option>
+                <option value="tada">Confetti</option>
+                <option value="flash">Flash</option>
+                <option value="zoom">Zoom</option>
+                <option value="shake">Shake</option>
+                <option value="pulse">Pulse</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="display-messages" checked class="autosave" data-autosave="event-config">
+                Afficher les messages pour chaque événement
+              </label>
+            </div>
+            
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="auto-update-stats" checked class="autosave" data-autosave="event-config">
+                Mettre à jour automatiquement dons et abonnements
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-play-circle"></i> Événements en direct
+            </div>
+            <button class="btn btn-sm" id="clear-events">
+              <i class="fas fa-trash"></i> Effacer
+            </button>
+          </div>
+          
+          <div class="live-events-container" id="live-events">
+            <!-- Les événements seront ajoutés ici par JavaScript -->
+          </div>
         </div>
       </div>
       
@@ -234,6 +393,186 @@
   
   <!-- Toast container pour notifications -->
   <div class="toast-container" id="toastContainer"></div>
+
+  <!-- CSS Supplémentaire -->
+  <style>
+    .save-indicator {
+      display: inline-block;
+      margin-left: 10px;
+      opacity: 0;
+      transition: opacity 0.3s ease, color 0.3s ease;
+      color: var(--primary);
+    }
+    
+    .save-indicator.saving {
+      opacity: 1;
+      animation: pulse 1s infinite;
+    }
+    
+    .save-indicator.saved {
+      opacity: 1;
+      color: var(--success);
+    }
+    
+    .save-indicator.error {
+      opacity: 1;
+      color: var(--error);
+    }
+    
+    .actions-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+    
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+    }
+    
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 24px;
+    }
+    
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .toggle-slider {
+      background-color: var(--primary);
+    }
+    
+    input:checked + .toggle-slider:before {
+      transform: translateX(26px);
+    }
+    
+    .status-badge {
+      font-size: 0.8rem;
+      padding: 2px 6px;
+      border-radius: 10px;
+      background-color: var(--mid);
+    }
+    
+    .status-badge.connected {
+      background-color: var(--success);
+    }
+    
+    .live-events-container {
+      max-height: 300px;
+      overflow-y: auto;
+      background: var(--dark);
+      border-radius: 4px;
+      padding: 10px;
+    }
+    
+    .event-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 10px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      margin-bottom: 8px;
+      transition: all 0.3s ease;
+      border-left: 3px solid var(--primary);
+      animation: fadeIn 0.3s;
+    }
+    
+    .event-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    
+    .event-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.2);
+    }
+    
+    .event-content {
+      flex: 1;
+    }
+    
+    .event-time {
+      font-size: 0.75rem;
+      color: var(--mid);
+    }
+    
+    .event-type {
+      font-weight: bold;
+      color: var(--primary);
+    }
+    
+    .event-item.donation {
+      border-left-color: #4CAF50;
+    }
+    
+    .event-item.subscription {
+      border-left-color: #9C27B0;
+    }
+    
+    .event-item.follow {
+      border-left-color: #2196F3;
+    }
+    
+    .event-item.cheer {
+      border-left-color: #FF9800;
+    }
+    
+    .event-item.raid {
+      border-left-color: #E91E63;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+    
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 15px;
+    }
+  </style>
 
   <!-- Scripts -->
   <script src="js/admin.js"></script>

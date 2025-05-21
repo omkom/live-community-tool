@@ -1,6 +1,106 @@
 [
   {
     "type": "INFO",
+    "timestamp": "2025-05-21T06:32:05.880Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T06:32:05.880Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:07.798Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:07.786Z",
+    "message": "Nouvelle connexion WebSocket: admin (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:07.774Z",
+    "message": "Nouvelle connexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:07.758Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:07.756Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:07.594Z",
+    "message": "Nouvelle connexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:07.582Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:07.570Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:04.856Z",
+    "message": "Intégration Twitch non initialisée ou désactivée"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:04.856Z",
+    "message": "✨ Serveur démarré sur http://localhost:3000"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:04.855Z",
+    "message": "Intégration Twitch/Streamlabs désactivée"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:04.855Z",
+    "message": "Configuration Twitch/Streamlabs sauvegardée"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:04.854Z",
+    "message": "Callback ajouté pour l'événement cheer"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:04.854Z",
+    "message": "Callback ajouté pour l'événement follow"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:04.854Z",
+    "message": "Callback ajouté pour l'événement subscription"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:50:04.848Z",
+    "message": "Callback ajouté pour l'événement donation"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:47:14.226Z",
+    "message": "Nouvelle connexion WebSocket: admin (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T05:47:13.988Z",
+    "message": "Déconnexion WebSocket: admin (::1)"
+  },
+  {
+    "type": "INFO",
     "timestamp": "2025-05-21T05:37:13.162Z",
     "message": "Nouvelle connexion WebSocket: viewer (::1)"
   },
