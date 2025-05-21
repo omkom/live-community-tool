@@ -1,5 +1,6 @@
 // server/controllers/twitch-api.js
 const logger = require('../logger');
+//const TwitchApiController = require('./twitch-api-controller');
 
 /**
  * Twitch API Controller
@@ -192,12 +193,38 @@ class TwitchApiController {
     }
   }
 
+  async getTwitchStatus(req, res) {
+    try {
+      const config = this.twitch.getConfig();
+      res.json({
+        connected: config.enabled && config.twitch.channelName
+      });
+    } catch (error) {
+      logger.error(`Error getting Twitch status: ${error.message}`);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getStreamlabsStatus(req, res) {
+    try {
+      const config = this.twitch.getConfig();
+      res.json({
+        connected: config.enabled && config.streamlabs.socketToken
+      });
+    } catch (error) {
+      logger.error(`Error getting Streamlabs status: ${error.message}`);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   /**
    * Register API routes
    * @param {Express} app Express application instance
    */
   registerRoutes(app) {
-    app.get('/api/twitch/status', this.getStatus.bind(this));
+
+    app.get('/api/twitch/status', this.getTwitchStatus.bind(this));
+    app.get('/api/streamlabs/status', this.getStreamlabsStatus.bind(this));
     app.post('/api/twitch/config', this.updateConfig.bind(this));
     app.get('/api/twitch/test-connection', this.testConnection.bind(this));
     app.post('/api/twitch/sync-subscriptions', this.syncSubscriptions.bind(this));

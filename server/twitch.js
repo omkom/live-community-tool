@@ -5,11 +5,11 @@ const io = require('socket.io-client');
 const logger = require('./logger');
 const dotenv = require('dotenv');
 
-// Chargement des variables d'environnement
+// Load environment variables from .env file
 dotenv.config();
 
-// Configuration (uniquement depuis les variables d'environnement)
-let config = {
+// Configuration from environment variables
+const config = {
   enabled: process.env.TWITCH_ENABLED === 'true',
   twitch: {
     clientId: process.env.TWITCH_CLIENT_ID || '',
@@ -29,49 +29,6 @@ let config = {
 let twitchClient = null;
 let streamlabsSocket = null;
 let eventCallbacks = [];
-
-/**
- * Initialiser l'intégration Twitch
- * @param {Object} options Options de configuration temporaires (session uniquement)
- * @returns {Promise<boolean>} Succès de l'initialisation
- */
-async function initialize(options = {}) {
-  try {
-    // Mise à jour de la configuration en mémoire uniquement
-    if (options.twitch) {
-      config.twitch = { ...config.twitch, ...options.twitch };
-    }
-    if (options.streamlabs) {
-      config.streamlabs = { ...config.streamlabs, ...options.streamlabs };
-    }
-    
-    // Vérifier si l'intégration est activée
-    if (!config.enabled) {
-      logger.log('Intégration Twitch/Streamlabs désactivée');
-      return false;
-    }
-    
-    if (config.twitch.channelName && config.twitch.oauthToken) {
-      initTwitchClient();
-    } else {
-      logger.error('Configuration Twitch incomplète: channelName ou oauthToken manquant');
-      return false;
-    }
-    
-    // Initialiser le client Streamlabs
-    if (config.streamlabs.socketToken) {
-      initStreamlabsSocket();
-    } else {
-      logger.error('Configuration Streamlabs incomplète');
-    }
-    
-    logger.log('Intégration Twitch/Streamlabs initialisée avec succès');
-    return true;
-  } catch (error) {
-    logger.error(`Erreur lors de l'initialisation Twitch/Streamlabs: ${error.message}`);
-    return false;
-  }
-}
 
 /**
  * Initialiser le client Twitch
@@ -248,6 +205,28 @@ function initStreamlabsSocket() {
     });
   } catch (error) {
     logger.error(`Erreur d'initialisation du socket Streamlabs: ${error.message}`);
+  }
+}
+
+/**
+ * Initialiser l'intégration Twitch
+ * @param {Object} options Options de configuration temporaires (session uniquement)
+ * @returns {Promise<boolean>} Succès de l'initialisation
+ */
+async function initialize() {
+  if (!config.enabled) {
+    logger.log('Intégration Twitch/Streamlabs désactivée');
+    return false;
+  }
+
+  if (config.twitch.channelName && config.twitch.oauthToken) {
+    initTwitchClient();
+  } else {
+    logger.error('Configuration Twitch incomplète');
+  }
+
+  if (config.streamlabs.socketToken) {
+    initStreamlabsSocket();
   }
 }
 
