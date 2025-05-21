@@ -51,11 +51,11 @@ async function initialize(options = {}) {
       return false;
     }
     
-    // Initialiser le client Twitch
     if (config.twitch.channelName && config.twitch.oauthToken) {
       initTwitchClient();
     } else {
-      logger.error('Configuration Twitch incomplète');
+      logger.error('Configuration Twitch incomplète: channelName ou oauthToken manquant');
+      return false;
     }
     
     // Initialiser le client Streamlabs
@@ -77,38 +77,33 @@ async function initialize(options = {}) {
  * Initialiser le client Twitch
  */
 function initTwitchClient() {
-  try {
-    // Déconnecter le client existant s'il y en a un
-    if (twitchClient) {
-      twitchClient.disconnect();
-    }
-    
-    // Options du client
-    const opts = {
-      identity: {
-        username: config.twitch.username,
-        password: config.twitch.oauthToken
-      },
-      channels: [config.twitch.channelName]
-    };
-    
-    // Créer le client
-    twitchClient = new tmi.Client(opts);
-    
-    // Connecter le client
-    twitchClient.connect()
-      .then(() => {
-        logger.log(`Connecté au chat Twitch comme ${config.twitch.username}`);
-      })
-      .catch(error => {
-        logger.error(`Erreur de connexion au chat Twitch: ${error.message}`);
-      });
-    
-    // Configurer les événements
-    setupTwitchEvents();
-  } catch (error) {
-    logger.error(`Erreur d'initialisation du client Twitch: ${error.message}`);
+  if (twitchClient) {
+    twitchClient.disconnect();
   }
+
+  twitchClient = new tmi.Client({
+    options: { debug: true },
+    identity: {
+      username: config.twitch.username,
+      password: config.twitch.oauthToken
+    },
+    channels: [config.twitch.channelName]
+  });
+
+  twitchClient.connect().catch(console.error);
+
+  twitchClient.on('message', (channel, tags, message, self) => {
+    // Handle chat messages
+    logger.log(`Message reçu sur ${channel}: ${message}`);
+  });
+
+  twitchClient.on('connected', (addr, port) => {
+    logger.log(`Connecté à Twitch: ${addr}:${port}`);
+  });
+
+  twitchClient.on('disconnected', (reason) => {
+    logger.error(`Déconnecté de Twitch: ${reason}`);
+  });
 }
 
 /**
