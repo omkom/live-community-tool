@@ -122,8 +122,8 @@ body::before {
 .timeline {
   position: relative;
   margin: 0 auto;
-  padding: 80px 0;
-  max-width: 800px;
+  padding: 40px 0;
+  max-width: 600px;
   min-height: 800px;
   overflow: visible;
 }
@@ -142,7 +142,7 @@ body::before {
 .timeline-item {
   position: absolute;
   left: 50%;
-  width: 50%;
+  width: 43%;
   transform: translateY(-50%);
   z-index: 2;
 }
@@ -158,14 +158,15 @@ body::before {
 }
 
 .timeline-content {
-  padding: 15px 20px;
+  padding: 5px 10px;
   background: rgba(0, 0, 0, 0.7);
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   border-left: 3px solid var(--primary);
   transition: all 0.3s ease;
   display: inline-block;
-  max-width: 300px;
+  max-width: 400px;
+  min-width: 55%;
 }
 
 .timeline-content:hover {
@@ -253,7 +254,7 @@ body::before {
 
 .current-time-label {
   position: absolute;
-  right: -120px;
+  left: -50px;
   background-color: rgba(0, 0, 0, 0.7);
   color: #ff3300;
   border: 1px solid #ff3300;

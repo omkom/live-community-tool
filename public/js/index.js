@@ -3,7 +3,7 @@
 let ws = null;
 let planningData = [];
 let statusData = null;
-let startTime = new Date();
+let streamStartTime = null; // Heure de début du stream
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
@@ -307,13 +307,30 @@ function updateStatusDisplay() {
   // Mettre à jour les barres de progression
   donationProgress.style.width = `${donationPercent}%`;
   subsProgress.style.width = `${subsPercent}%`;
+  
+  // Mettre à jour l'heure de début du stream si elle existe
+  if (statusData.stream_start_time) {
+    streamStartTime = new Date(statusData.stream_start_time);
+  } else if (!streamStartTime) {
+    // Si pas d'heure de début dans le fichier de statut, utiliser minuit du jour actuel
+    streamStartTime = new Date();
+    streamStartTime.setHours(0, 0, 0, 0);
+  }
 }
 
 // Horloge du stream
 function startClock() {
   const updateClock = () => {
     const now = new Date();
-    const diff = now - startTime;
+    
+    // Si l'heure de début du stream n'est pas définie, l'initialiser à minuit
+    if (!streamStartTime) {
+      streamStartTime = new Date();
+      streamStartTime.setHours(0, 0, 0, 0);
+    }
+    
+    // Calculer la différence entre maintenant et l'heure de début du stream
+    const diff = now - streamStartTime;
     
     // Calculer heures, minutes, secondes écoulées
     const hours = Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, '0');

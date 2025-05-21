@@ -1,19 +1,49 @@
 {
   "planning": [
     {
+      "time": "00:00",
+      "label": "Introduction",
+      "checked": false
+    },
+    {
+      "time": "01:00",
+      "label": "Jeu solo calme",
+      "checked": true
+    },
+    {
+      "time": "02:00",
+      "label": "Création Communautaire",
+      "checked": false
+    },
+    {
+      "time": "04:00",
+      "label": "SIESTE 2",
+      "checked": false
+    },
+    {
+      "time": "07:00",
+      "label": "Réveil en douceur",
+      "checked": false
+    },
+    {
+      "time": "08:30",
+      "label": "Clôture du stream",
+      "checked": false
+    },
+    {
       "time": "09:00",
       "label": "Sport & Talksdd",
-      "checked": true
+      "checked": false
     },
     {
       "time": "10:30",
       "label": "Cuisine MIDI",
-      "checked": true
+      "checked": false
     },
     {
       "time": "12:00",
       "label": "Création Communautaire 1",
-      "checked": true
+      "checked": false
     },
     {
       "time": "14:00",
@@ -48,36 +78,6 @@
     {
       "time": "23:30",
       "label": "Discussion nocturne",
-      "checked": false
-    },
-    {
-      "time": "01:00",
-      "label": "SIESTE 1",
-      "checked": false
-    },
-    {
-      "time": "02:30",
-      "label": "Jeu solo calme",
-      "checked": false
-    },
-    {
-      "time": "04:00",
-      "label": "Création Communautaire 2",
-      "checked": false
-    },
-    {
-      "time": "05:30",
-      "label": "SIESTE 2",
-      "checked": false
-    },
-    {
-      "time": "07:00",
-      "label": "Réveil en douceur",
-      "checked": false
-    },
-    {
-      "time": "08:30",
-      "label": "Clôture du stream",
       "checked": false
     }
   ]

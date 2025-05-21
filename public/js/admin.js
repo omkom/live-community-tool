@@ -288,11 +288,21 @@ function loadStatus() {
       return response.json();
     })
     .then(data => {
-      // Mettre à jour les valeurs des champs
+      // Mettre à jour les valeurs des champs existants
       document.getElementById('donation_total').value = data.donation_total;
       document.getElementById('donation_goal').value = data.donation_goal;
       document.getElementById('subs_total').value = data.subs_total;
       document.getElementById('subs_goal').value = data.subs_goal;
+      
+      // Mettre à jour l'heure de début du stream
+      if (data.stream_start_time) {
+        // Formatage de la date pour l'input datetime-local
+        const startTime = new Date(data.stream_start_time);
+        const formattedDate = startTime.toISOString().slice(0, 16);
+        document.getElementById('stream_start_time').value = formattedDate;
+      } else {
+        document.getElementById('stream_start_time').value = '';
+      }
       
       // Mettre à jour les affichages visuels
       updateDonationProgress(data.donation_total, data.donation_goal, data.subs_total, data.subs_goal);
@@ -300,6 +310,51 @@ function loadStatus() {
     .catch(error => {
       console.error('Erreur lors du chargement du statut:', error);
       showToast('Erreur lors du chargement du statut', 'error');
+    });
+}
+
+// Modifier la fonction updateStatus() pour inclure l'heure de début
+function updateStatus() {
+  const donationTotal = parseInt(document.getElementById('donation_total').value, 10) || 0;
+  const donationGoal = parseInt(document.getElementById('donation_goal').value, 10) || 1000;
+  const subsTotal = parseInt(document.getElementById('subs_total').value, 10) || 0;
+  const subsGoal = parseInt(document.getElementById('subs_goal').value, 10) || 50;
+  const streamStartTimeInput = document.getElementById('stream_start_time').value;
+  
+  // Convertir l'heure de début en format ISO pour le stockage
+  let streamStartTime = null;
+  if (streamStartTimeInput) {
+    streamStartTime = new Date(streamStartTimeInput).toISOString();
+  }
+  
+  const payload = {
+    donation_total: donationTotal,
+    donation_goal: donationGoal,
+    subs_total: subsTotal,
+    subs_goal: subsGoal,
+    stream_start_time: streamStartTime
+  };
+  
+  fetch('/api/status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(err => {
+          throw new Error(err.error || `Erreur HTTP ${response.status}`);
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      showToast('Statut mis à jour avec succès', 'success');
+      updateDonationProgress(donationTotal, donationGoal, subsTotal, subsGoal);
+    })
+    .catch(error => {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      showToast(`Erreur: ${error.message}`, 'error');
     });
 }
 
