@@ -1,4 +1,4 @@
-/* public/css/index.css */
+/* public/css/index.css - Optimisé pour 500px avec alternance gauche/droite */
 :root {
   --primary: #00ffcc;
   --dark: #111111;
@@ -33,43 +33,45 @@ body::before {
 }
 
 .container {
-  max-width: 1200px;
+  width: 100%;
+  max-width: 350px; /* Fixé à 500px maximum */
   margin: 0 auto;
-  padding: 30px 15px;
+  padding: 20px 10px;
+  box-sizing: border-box;
 }
 
 .header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 30px;
 }
 
 .logo {
   color: var(--primary);
-  font-size: 2.5rem;
+  font-size: 1.8rem;
   font-weight: bold;
   margin-bottom: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 15px;
+  gap: 10px;
 }
 
 .subtitle {
-  font-size: 1.2rem;
+  font-size: 1rem;
   color: var(--mid);
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .timer {
   background: rgba(0, 0, 0, 0.7);
-  padding: 15px 25px;
+  padding: 10px 15px;
   border-radius: 50px;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: 1.5rem;
-  margin-bottom: 30px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  gap: 8px;
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(0, 255, 204, 0.3);
 }
 
@@ -77,62 +79,24 @@ body::before {
   color: var(--primary);
 }
 
-.donation-container {
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 10px;
-  padding: 20px;
-  margin-top: 50px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(0, 255, 204, 0.2);
-}
-
-/* Styles pour les items avec des statuts différents */
-.timeline-item.done .timeline-content {
-  border-left: 3px solid #2ed573;
-  opacity: 0.7;
-}
-
-.timeline-item.current .timeline-content {
-  border-left: 3px solid #ff3300;
-  box-shadow: 0 0 20px rgba(255, 51, 0, 0.2);
-}
-
-.timeline-item.done .timeline-title {
-  text-decoration: line-through;
-  color: var(--mid);
-}
-
-/* Animation de pulse pour l'élément actuel */
-@keyframes glow {
-  0% {
-    box-shadow: 0 0 5px rgba(255, 51, 0, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(255, 51, 0, 0.6);
-  }
-  100% {
-    box-shadow: 0 0 5px rgba(255, 51, 0, 0.3);
-  }
-}
-
-.timeline-item.current .timeline-content {
-  animation: glow 2s infinite;
-}
-
+/* ===== TIMELINE STYLES ===== */
+/* Structure de base de la timeline */
 .timeline {
   position: relative;
   margin: 0 auto;
-  padding: 80px 0;
-  max-width: 800px;
-  min-height: 600px;
+  padding: 30px 0;
+  max-width: 100%;
+  min-height: 800px;
   height: auto;
   overflow: visible;
+  box-sizing: border-box;
 }
 
+/* Ligne centrale de la timeline */
 .timeline::before {
   content: '';
   position: absolute;
-  left: 50%;
+  left: 50%; /* Garder la ligne au centre */
   width: 2px;
   height: 100%;
   background: rgba(255, 255, 255, 0.2);
@@ -140,31 +104,65 @@ body::before {
   z-index: 0;
 }
 
-.timeline-item {
+/* Container pour les marqueurs d'heures */
+.hour-markers {
   position: absolute;
-  left: 50%;
-  width: 50%;
-  transform: translateY(-50%);
-  z-index: 2;
-  margin-bottom: 0;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none; /* Pour permettre les clics à travers */
 }
 
-.timeline-item:nth-child(odd) {
+/* Style des marqueurs d'heure individuels */
+.hour-marker {
+  position: absolute;
   left: 0;
-  padding-right: 40px;
+  width: 100%;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Étiquette horaire à gauche - plus compacte pour 500px */
+.hour-marker-label {
+  position: absolute;
+  left: -35px; /* Réduit l'espace */
+  top: -10px;
+  width: 30px; /* Plus petit */
+  text-align: right;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.7rem; /* Plus petit */
+  font-weight: bold;
+}
+
+/* Style des éléments de timeline (événements) alignés par le haut */
+.timeline-item {
+  position: absolute;
+  width: 42%; /* Légèrement plus étroit pour éviter les chevauchements */
+  z-index: 2;
+  /* Pas de transform pour aligner par le haut plutôt que centré */
+}
+
+/* Alternance gauche-droite pour les événements */
+.timeline-item.left {
+  left: 0;
+  padding-right: 20px; /* Réduit l'espace */
   text-align: right;
 }
 
-.timeline-item:nth-child(even) {
-  padding-left: 40px;
+.timeline-item.right {
+  right: 0;
+  padding-left: 20px; /* Réduit l'espace */
+  text-align: left;
 }
 
+/* Contenu des événements - plus compact */
 .timeline-content {
-  padding: 15px 20px;
+  padding: 10px 15px; /* Réduit le padding */
   background: rgba(0, 0, 0, 0.7);
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  border-left: 3px solid var(--primary);
   transition: all 0.3s ease;
   display: inline-block;
   max-width: 100%;
@@ -172,79 +170,54 @@ body::before {
   word-wrap: break-word;
 }
 
+.timeline-item.left .timeline-content {
+  border-right: 3px solid var(--primary);
+}
+
+.timeline-item.right .timeline-content {
+  border-left: 3px solid var(--primary);
+}
+
 .timeline-content:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
 }
 
+/* Conteneur pour l'heure et le titre alignés */
+.timeline-content-header {
+  display: flex;
+  align-items: center;
+  gap: 5px; /* Réduit l'espace */
+  margin-bottom: 0; /* Enlève la marge pour plus de compacité */
+  font-size: 0.85rem; /* Plus petit */
+}
+
+.timeline-item.left .timeline-content-header {
+  justify-content: flex-end;
+}
+
+/* Point sur la timeline au niveau du haut du bloc */
 .timeline-item::before {
   content: '';
   position: absolute;
-  top: 50%;
-  width: 15px;
-  height: 15px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--mid);
   z-index: 1;
+  top: 0;
   transform: translateY(-50%);
 }
 
-.timeline-item:nth-child(odd)::before {
-  right: -8px;
+.timeline-item.left::before {
+  right: -6px;
 }
 
-.timeline-item:nth-child(even)::before {
-  left: -8px;
+.timeline-item.right::before {
+  left: -6px;
 }
 
-.timeline-item.current::before {
-  background: var(--primary);
-  box-shadow: 0 0 15px var(--primary);
-  animation: pulse 2s infinite;
-}
-
-.timeline-item.done::before {
-  background: #2ed573;
-}
-
-.timeline-time {
-  font-weight: bold;
-  color: var(--primary);
-  font-size: 1.2rem;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.timeline-title {
-  font-size: 1.1rem;
-  font-weight: normal;
-  margin-bottom: 5px;
-}
-
-.status-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 5px;
-}
-
-.status-live {
-  background: #ff4757;
-  box-shadow: 0 0 10px #ff4757;
-  animation: pulse 2s infinite;
-}
-
-.status-done {
-  background: #2ed573;
-}
-
-.status-pending {
-  background: #747d8c;
-}
-
+/* Indicateur de temps courant */
 .current-time-indicator {
   position: absolute;
   left: 0;
@@ -257,13 +230,13 @@ body::before {
 
 .current-time-label {
   position: absolute;
-  right: -120px;
+  right: -75px; /* Réduit l'espace */
   background-color: rgba(0, 0, 0, 0.7);
   color: #ff3300;
   border: 1px solid #ff3300;
-  padding: 5px 10px;
+  padding: 3px 6px; /* Plus petit */
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: bold;
   z-index: 11;
   white-space: nowrap;
@@ -271,25 +244,20 @@ body::before {
   box-shadow: 0 0 10px rgba(255, 51, 0, 0.3);
 }
 
-/* Style pour les heures sur la timeline */
-.timeline-hour-marker {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background-color: rgba(255, 255, 255, 0.05);
-  z-index: 1;
+/* Contenus de texte dans timeline - plus compact */
+.timeline-time {
+  color: var(--primary);
+  font-weight: bold;
+  font-size: 0.8rem; /* Plus petit */
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 3px; /* Réduit l'espace */
 }
 
-.timeline-hour-label {
-  position: absolute;
-  left: -45px;
-  width: 40px;
-  text-align: right;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.7rem;
-  z-index: 6;
-  transform: translateY(-50%);
+.timeline-title {
+  font-size: 0.8rem; /* Plus petit */
+  font-weight: normal;
 }
 
 .timeline-empty {
@@ -298,37 +266,70 @@ body::before {
   color: var(--mid);
 }
 
-/* Donation Container */
+/* Styles spécifiques pour les états */
+.timeline-item.done .timeline-content {
+  opacity: 0.7;
+}
+
+.timeline-item.left.done .timeline-content {
+  border-right-color: #2ed573;
+}
+
+.timeline-item.right.done .timeline-content {
+  border-left-color: #2ed573;
+}
+
+.timeline-item.done .timeline-title {
+  text-decoration: line-through;
+  color: var(--mid);
+}
+
+.timeline-item.left.current .timeline-content {
+  border-right-color: #ff3300;
+  box-shadow: 0 0 20px rgba(255, 51, 0, 0.3);
+}
+
+.timeline-item.right.current .timeline-content {
+  border-left-color: #ff3300;
+  box-shadow: 0 0 20px rgba(255, 51, 0, 0.3);
+}
+
+.timeline-item.current .timeline-content {
+  animation: glow 2s infinite;
+}
+
+/* ===== DONATION STYLES ===== */
 .donation-container {
-  background: var(--darker);
+  background: rgba(0, 0, 0, 0.7);
   border-radius: 10px;
-  padding: 20px;
-  margin-top: 50px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  margin-top: 30px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 255, 204, 0.2);
 }
 
 .donation-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
-  gap: 10px;
+  margin-bottom: 15px;
+  gap: 8px;
 }
 
 .donation-title {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   color: var(--primary);
 }
 
 .progress-section {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .progress-info {
   display: flex;
   justify-content: space-between;
   margin-bottom: 5px;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 .progress-label {
@@ -342,7 +343,7 @@ body::before {
 }
 
 .progress-container {
-  height: 15px;
+  height: 12px;
   background: var(--dark);
   border-radius: 5px;
   overflow: hidden;
@@ -374,6 +375,7 @@ body::before {
   animation: shine 2s infinite;
 }
 
+/* ===== ANIMATIONS ===== */
 @keyframes shine {
   0% {
     background-position: -100% 0;
@@ -395,479 +397,14 @@ body::before {
   }
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .timeline {
-    min-height: 400px;
-    padding: 40px 0;
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 5px rgba(255, 51, 0, 0.3);
   }
-  
-  .timeline::before {
-    left: 50px;
+  50% {
+    box-shadow: 0 0 20px rgba(255, 51, 0, 0.6);
   }
-  
-  .hour-markers {
-    width: 45px;
-  }
-  
-  .hour-marker::after {
-    left: 50px;
-    width: calc(100% - 50px);
-  }
-  
-  .timeline-item {
-    width: calc(100% - 70px);
-    max-width: calc(100% - 70px);
-    left: 70px !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    text-align: left !important;
-  }
-  
-  .timeline-item.left::before, 
-  .timeline-item.right::before {
-    left: -20px;
-    right: auto;
-  }
-  
-  .timeline-item.left .timeline-content {
-    border-left: 3px solid var(--primary);
-    border-right: none;
-  }
-  
-  .timeline-item.left .timeline-time {
-    justify-content: flex-start;
-  }
-  
-  .current-time-indicator {
-    left: 50px;
-    width: calc(100% - 50px);
-  }
-  
-  .current-time-label {
-    left: 10px;
-  }
-}
-
-@media (max-width: 576px) {
-  .timeline {
-    margin-left: 0;
-    padding-left: 0;
-  }
-  
-  .logo {
-    font-size: 2rem;
-  }
-  
-  .subtitle {
-    font-size: 1rem;
-  }
-  
-  .timer {
-    font-size: 1.2rem;
-  }
-  
-  .hour-markers {
-    width: 35px;
-  }
-  
-  .hour-marker {
-    font-size: 0.6rem;
-  }
-  
-  .hour-marker::after {
-    left: 40px;
-  }
-  
-  .timeline::before {
-    left: 40px;
-  }
-  
-  .timeline-item {
-    left: 60px !important;
-    width: calc(100% - 65px);
-  }
-  
-  .timeline-time {
-    font-size: 0.9rem;
-  }
-  
-  .timeline-title {
-    font-size: 0.9rem;
-  }
-  
-  .current-time-indicator {
-    left: 40px;
-    width: calc(100% - 40px);
-  }
-  
-  .current-time-label {
-    left: 5px;
-    font-size: 0.7rem;
-    padding: 3px 6px;
-  }
-}
-
-
-/* Modifications pour public/css/index.css */
-
-/* Structure de base de la timeline */
-.timeline {
-  position: relative;
-  margin: 0 auto;
-  padding: 0;
-  max-width: 800px;
-  min-height: 800px;
-  height: auto;
-  overflow: visible;
-  box-sizing: border-box;
-}
-
-/* Ligne centrale de la timeline */
-.timeline::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  width: 2px;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateX(-50%);
-  z-index: 0;
-}
-
-/* Container pour les marqueurs d'heures */
-.hour-markers {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  pointer-events: none; /* Pour permettre les clics à travers */
-}
-
-/* Style des marqueurs d'heure individuels */
-.hour-marker {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background-color: rgba(255, 255, 255, 0.05);
-  display: flex;
-  align-items: center;
-  padding-left: 10px;
-  box-sizing: border-box;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-/* Étiquette horaire à gauche */
-.hour-marker-label {
-  position: absolute;
-  left: -60px;
-  top: -10px;
-  width: 50px;
-  text-align: right;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.75rem;
-  font-weight: bold;
-}
-
-/* Style des éléments de timeline (événements) */
-.timeline-item {
-  position: absolute;
-  left: 50%;
-  transform: translateY(-50%);
-  z-index: 2;
-  margin: 0;
-  width: 50%;
-  box-sizing: border-box;
-}
-
-/* Alternance gauche-droite pour les événements */
-.timeline-item:nth-child(odd) {
-  left: 0;
-  padding-right: 40px;
-  text-align: right;
-}
-
-.timeline-item:nth-child(even) {
-  padding-left: 40px;
-}
-
-/* Contenu des événements */
-.timeline-content {
-  padding: 15px 20px;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  border-left: 3px solid var(--primary);
-  transition: all 0.3s ease;
-  display: inline-block;
-  max-width: 100%;
-  box-sizing: border-box;
-  word-wrap: break-word;
-}
-
-/* Point sur la timeline */
-.timeline-item::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: var(--mid);
-  z-index: 1;
-  transform: translateY(-50%);
-}
-
-.timeline-item:nth-child(odd)::before {
-  right: -8px;
-}
-
-.timeline-item:nth-child(even)::before {
-  left: -8px;
-}
-
-/* Indicateur de temps courant */
-.current-time-indicator {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background-color: #ff3300;
-  z-index: 10;
-  box-shadow: 0 0 10px rgba(255, 51, 0, 0.7);
-}
-
-.current-time-label {
-  position: absolute;
-  right: -120px;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: #ff3300;
-  border: 1px solid #ff3300;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: bold;
-  z-index: 11;
-  white-space: nowrap;
-  transform: translateY(-50%);
-  box-shadow: 0 0 10px rgba(255, 51, 0, 0.3);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .hour-marker-label {
-    left: -45px;
-    width: 40px;
-    font-size: 0.7rem;
-  }
-  
-  .timeline-item {
-    width: calc(100% - 70px);
-    left: 70px !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    text-align: left !important;
-  }
-  
-  .timeline-item:nth-child(odd)::before,
-  .timeline-item:nth-child(even)::before {
-    left: -20px;
-    right: auto;
-  }
-  
-  .current-time-indicator,
-  .hour-marker {
-    left: 50px;
-    width: calc(100% - 50px);
-  }
-}
-
-
-/* Modifications pour public/css/index.css */
-
-/* Structure de base de la timeline */
-.timeline {
-  position: relative;
-  margin: 0 auto;
-  padding: 0;
-  max-width: 800px;
-  min-height: 800px;
-  height: auto;
-  overflow: visible;
-  box-sizing: border-box;
-}
-
-/* Ligne centrale de la timeline */
-.timeline::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  width: 2px;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateX(-50%);
-  z-index: 0;
-}
-
-/* Container pour les marqueurs d'heures */
-.hour-markers {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  pointer-events: none; /* Pour permettre les clics à travers */
-}
-
-/* Style des marqueurs d'heure individuels */
-.hour-marker {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background-color: rgba(255, 255, 255, 0.05);
-  display: flex;
-  align-items: center;
-}
-
-/* Étiquette horaire à gauche */
-.hour-marker-label {
-  position: absolute;
-  left: -60px;
-  top: -10px;
-  width: 50px;
-  text-align: right;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.75rem;
-  font-weight: bold;
-}
-
-/* Style des éléments de timeline (événements) alignés par le haut */
-.timeline-item {
-  position: absolute;
-  width: 45%;
-  z-index: 2;
-  /* Suppression de transform: translateY(-50%) pour aligner par le haut */
-  margin: 0;
-  box-sizing: border-box;
-}
-
-/* Alternance gauche-droite pour les événements */
-.timeline-item:nth-child(odd) {
-  left: 0;
-  padding-right: 40px;
-  text-align: right;
-}
-
-.timeline-item:nth-child(even) {
-  left: 55%; /* Ajusté pour être à droite sans chevauchement */
-  padding-left: 40px;
-  text-align: left;
-}
-
-/* Contenu des événements */
-.timeline-content {
-  padding: 15px 20px;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  border-left: 3px solid var(--primary);
-  transition: all 0.3s ease;
-  display: inline-block;
-  max-width: 100%;
-  box-sizing: border-box;
-  word-wrap: break-word;
-}
-
-/* Point sur la timeline, ajusté pour apparaître au niveau du haut du bloc */
-.timeline-item::before {
-  content: '';
-  position: absolute;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: var(--mid);
-  z-index: 1;
-  top: 0; /* Aligné sur le haut du bloc */
-  transform: translateY(-50%); /* Ajusté pour centrer le point sur la ligne */
-}
-
-.timeline-item:nth-child(odd)::before {
-  right: -8px;
-}
-
-.timeline-item:nth-child(even)::before {
-  left: -8px;
-}
-
-/* Indicateur de temps courant */
-.current-time-indicator {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background-color: #ff3300;
-  z-index: 10;
-  box-shadow: 0 0 10px rgba(255, 51, 0, 0.7);
-}
-
-.current-time-label {
-  position: absolute;
-  right: -120px;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: #ff3300;
-  border: 1px solid #ff3300;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: bold;
-  z-index: 11;
-  white-space: nowrap;
-  transform: translateY(-50%);
-  box-shadow: 0 0 10px rgba(255, 51, 0, 0.3);
-}
-
-/* Styles spécifiques pour les états */
-.timeline-item.current::before {
-  background: var(--primary);
-  box-shadow: 0 0 15px var(--primary);
-  animation: pulse 2s infinite;
-}
-
-.timeline-item.done::before {
-  background: #2ed573;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .hour-marker-label {
-    left: -45px;
-    width: 40px;
-    font-size: 0.7rem;
-  }
-  
-  .timeline-item {
-    width: calc(100% - 70px);
-    left: 70px !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    text-align: left !important;
-  }
-  
-  .timeline-item:nth-child(odd)::before,
-  .timeline-item:nth-child(even)::before {
-    left: -20px;
-    right: auto;
-  }
-  
-  .current-time-indicator,
-  .hour-marker {
-    left: 50px;
-    width: calc(100% - 50px);
+  100% {
+    box-shadow: 0 0 5px rgba(255, 51, 0, 0.3);
   }
 }

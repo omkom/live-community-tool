@@ -1,4 +1,4 @@
-// public/js/index.js
+// public/js/index.js - Version avec heure et titre sur la même ligne
 // Variables globales
 let ws = null;
 let planningData = [];
@@ -200,22 +200,20 @@ function renderTimeline() {
     const timelineContent = document.createElement('div');
     timelineContent.className = 'timeline-content';
     
+    // Créer un conteneur pour l'heure et le titre (sur la même ligne)
+    const contentHeader = document.createElement('div');
+    contentHeader.className = 'timeline-content-header';
+    
     // Créer l'icône d'heure
-    const timeSpan = document.createElement('div');
+    const timeSpan = document.createElement('span');
     timeSpan.className = 'timeline-time';
     
     // Ajouter une icône selon le statut
     const icon = document.createElement('i');
     if (item.checked) {
       icon.className = 'fas fa-check-circle';
-      timelineContent.style.opacity = '0.7';
-      timelineContent.style.borderLeftColor = '#2ed573';
-      timelineContent.style.borderRightColor = '#2ed573';
     } else if (index === currentIndex) {
       icon.className = 'fas fa-play-circle';
-      timelineContent.style.borderLeftColor = '#ff3300';
-      timelineContent.style.borderRightColor = '#ff3300';
-      timelineContent.style.boxShadow = '0 0 15px rgba(255, 51, 0, 0.3)';
     } else {
       icon.className = 'fas fa-clock';
     }
@@ -224,12 +222,16 @@ function renderTimeline() {
     timeSpan.appendChild(document.createTextNode(` ${item.time}`));
     
     // Créer le titre de l'événement
-    const titleSpan = document.createElement('div');
+    const titleSpan = document.createElement('span');
     titleSpan.className = 'timeline-title';
     titleSpan.textContent = item.label;
     
-    timelineContent.appendChild(timeSpan);
-    timelineContent.appendChild(titleSpan);
+    // Assembler le header (heure + titre)
+    contentHeader.appendChild(timeSpan);
+    contentHeader.appendChild(titleSpan);
+    
+    // Assembler le contenu
+    timelineContent.appendChild(contentHeader);
     
     timelineItem.appendChild(timelineContent);
     timeline.appendChild(timelineItem);
@@ -241,7 +243,7 @@ function renderTimeline() {
   timeline.dataset.duration = totalDurationInMinutes;
 }
 
-// La fonction updateTimeIndicator reste inchangée
+// Fonction pour mettre à jour uniquement l'indicateur de temps
 function updateTimeIndicator() {
   const now = new Date();
   const currentHour = now.getHours();

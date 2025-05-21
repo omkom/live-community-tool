@@ -1,6 +1,476 @@
 [
   {
     "type": "INFO",
+    "timestamp": "2025-05-21T04:27:18.216Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:27:18.063Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:25:16.991Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:25:16.918Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:25:06.397Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:25:06.335Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:24:56.209Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:24:56.130Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:24:07.838Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:24:07.764Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:19:27.289Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:19:27.126Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:19:20.842Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:19:20.754Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:17:26.729Z",
+    "message": "Nouvelle connexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:17:26.717Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:17:26.715Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:17:26.158Z",
+    "message": "Nouvelle connexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:17:26.144Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:17:26.133Z",
+    "message": "Nouvelle connexion WebSocket: admin (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:17:26.130Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:17:25.160Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:17:23.239Z",
+    "message": "✨ Serveur démarré sur http://localhost:3000"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:16:50.289Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:16:50.107Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:16:46.899Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:16:46.662Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:14:48.070Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:14:47.775Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:14:47.727Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:14:47.715Z",
+    "message": "Nouvelle connexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:14:47.714Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:14:47.544Z",
+    "message": "Nouvelle connexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:14:47.535Z",
+    "message": "Nouvelle connexion WebSocket: admin (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:14:47.532Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:14:47.520Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:14:47.518Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:14:44.642Z",
+    "message": "✨ Serveur démarré sur http://localhost:3000"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:40.328Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:40.251Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:38.643Z",
+    "message": "Nouvelle connexion WebSocket: admin (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:38.551Z",
+    "message": "Déconnexion WebSocket: admin (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:35.757Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:35.744Z",
+    "message": "Nouvelle connexion WebSocket: admin (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:35.730Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:35.715Z",
+    "message": "Nouvelle connexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:35.714Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:35.455Z",
+    "message": "Nouvelle connexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:35.443Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:35.430Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:34.100Z",
+    "message": "✨ Serveur démarré sur http://localhost:3000"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:25.069Z",
+    "message": "Nouvelle connexion WebSocket: admin (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:24.893Z",
+    "message": "Déconnexion WebSocket: admin (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:23.545Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:10:23.392Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:56.753Z",
+    "message": "Nouvelle connexion WebSocket: admin (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:56.738Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:56.724Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:56.711Z",
+    "message": "Nouvelle connexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:56.710Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:56.252Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:56.240Z",
+    "message": "Nouvelle connexion WebSocket: status (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:56.226Z",
+    "message": "Nouvelle connexion WebSocket: overlay (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:53.323Z",
+    "message": "✨ Serveur démarré sur http://localhost:3000"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:29.058Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:29.058Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:23.086Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:23.085Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:16.026Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:16.024Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:08.315Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:08.315Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:00.211Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:09:00.210Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:08:49.787Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:08:49.786Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:08:45.319Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:08:45.319Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:08:44.170Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:08:44.169Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:08:37.633Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:08:37.632Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:08:30.908Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:08:30.908Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:08:25.797Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:08:25.796Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:08:25.474Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:08:25.473Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:07:44.948Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:07:44.947Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:07:44.910Z",
+    "message": "Planning mis à jour"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:07:44.909Z",
+    "message": "Message diffusé à 8 clients: {\"type\":\"update\",\"target\":\"pla..."
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:07:19.042Z",
+    "message": "Nouvelle connexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
+    "timestamp": "2025-05-21T04:07:18.979Z",
+    "message": "Déconnexion WebSocket: viewer (::1)"
+  },
+  {
+    "type": "INFO",
     "timestamp": "2025-05-21T04:04:18.740Z",
     "message": "Nouvelle connexion WebSocket: overlay (::1)"
   },
