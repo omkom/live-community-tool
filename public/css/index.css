@@ -122,8 +122,8 @@ body::before {
 .timeline {
   position: relative;
   margin: 0 auto;
-  padding: 40px 0;
-  max-width: 600px;
+  padding: 80px 0;
+  max-width: 800px;
   min-height: 800px;
   overflow: visible;
 }
@@ -142,7 +142,7 @@ body::before {
 .timeline-item {
   position: absolute;
   left: 50%;
-  width: 43%;
+  width: 50%;
   transform: translateY(-50%);
   z-index: 2;
 }
@@ -158,15 +158,14 @@ body::before {
 }
 
 .timeline-content {
-  padding: 5px 10px;
+  padding: 15px 20px;
   background: rgba(0, 0, 0, 0.7);
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   border-left: 3px solid var(--primary);
   transition: all 0.3s ease;
   display: inline-block;
-  max-width: 400px;
-  min-width: 55%;
+  max-width: 300px;
 }
 
 .timeline-content:hover {
@@ -254,7 +253,7 @@ body::before {
 
 .current-time-label {
   position: absolute;
-  left: -50px;
+  right: -120px;
   background-color: rgba(0, 0, 0, 0.7);
   color: #ff3300;
   border: 1px solid #ff3300;
@@ -395,55 +394,57 @@ body::before {
 /* Responsive */
 @media (max-width: 768px) {
   .timeline::before {
-    left: 60px;
+    left: 50px;
+  }
+  
+  .hour-markers {
+    width: 45px;
+  }
+  
+  .hour-marker::after {
+    left: 50px;
+    width: calc(100% - 50px);
   }
   
   .timeline-item {
-    width: 100%;
-    padding-left: 100px;
-    padding-right: 0;
+    width: calc(100% - 70px);
+    left: 70px !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    text-align: left !important;
   }
   
-  .timeline-item:nth-child(even) {
-    left: 0;
-    padding-left: 100px;
-  }
-  
-  .timeline-item::before {
-    left: 54px;
+  .timeline-item.left::before, 
+  .timeline-item.right::before {
+    left: -20px;
     right: auto;
   }
   
-  .timeline-item:nth-child(even)::before {
-    left: 54px;
+  .timeline-item.left .timeline-content {
+    border-left: 3px solid var(--primary);
+    border-right: none;
   }
   
-  .timeline-content {
-    max-width: 100%;
-  }
-  
-  .timeline-hour-marker {
-    left: 60px;
-    width: calc(100% - 60px);
-  }
-  
-  .timeline-hour-label {
-    left: 20px;
-    text-align: right;
+  .timeline-item.left .timeline-time {
+    justify-content: flex-start;
   }
   
   .current-time-indicator {
-    left: 60px;
-    width: calc(100% - 60px);
+    left: 50px;
+    width: calc(100% - 50px);
   }
   
   .current-time-label {
-    left: 70px;
-    right: auto;
+    left: 10px;
   }
 }
 
 @media (max-width: 576px) {
+  .timeline {
+    margin-left: 0;
+    padding-left: 0;
+  }
+  
   .logo {
     font-size: 2rem;
   }
@@ -456,33 +457,33 @@ body::before {
     font-size: 1.2rem;
   }
   
+  .hour-markers {
+    width: 35px;
+  }
+  
+  .hour-marker {
+    font-size: 0.6rem;
+  }
+  
+  .hour-marker::after {
+    left: 40px;
+  }
+  
   .timeline::before {
     left: 40px;
   }
   
   .timeline-item {
-    padding-left: 70px;
+    left: 60px !important;
+    width: calc(100% - 65px);
   }
   
-  .timeline-item:nth-child(even) {
-    padding-left: 70px;
+  .timeline-time {
+    font-size: 0.9rem;
   }
   
-  .timeline-item::before {
-    left: 34px;
-  }
-  
-  .timeline-item:nth-child(even)::before {
-    left: 34px;
-  }
-  
-  .timeline-hour-marker {
-    left: 40px;
-    width: calc(100% - 40px);
-  }
-  
-  .timeline-hour-label {
-    left: 10px;
+  .timeline-title {
+    font-size: 0.9rem;
   }
   
   .current-time-indicator {
@@ -491,7 +492,8 @@ body::before {
   }
   
   .current-time-label {
-    left: 50px;
-    right: auto;
+    left: 5px;
+    font-size: 0.7rem;
+    padding: 3px 6px;
   }
 }

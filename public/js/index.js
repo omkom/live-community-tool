@@ -122,27 +122,30 @@ function renderTimeline() {
   // Durée totale en minutes
   const totalDurationInMinutes = maxTimeInMinutes - minTimeInMinutes;
   
-  // Ajouter les marqueurs d'heures (une ligne par heure)
-  for (let hour = Math.floor(minTimeInMinutes / 60); hour <= Math.ceil(maxTimeInMinutes / 60); hour++) {
+  // Créer les marqueurs d'heures
+  const hourMarkers = document.createElement('div');
+  hourMarkers.className = 'hour-markers';
+  
+  // Ajouter les marqueurs d'heures (une par heure)
+  for (let hour = 0; hour < 24; hour++) {
     const hourInMinutes = hour * 60;
+    
+    // Ne pas afficher les heures hors de la plage visible
+    if (hourInMinutes < minTimeInMinutes || hourInMinutes > maxTimeInMinutes) continue;
     
     // Calculer la position verticale en pourcentage
     const positionPercentage = ((hourInMinutes - minTimeInMinutes) / totalDurationInMinutes) * 100;
     
     // Créer le marqueur d'heure
     const hourMarker = document.createElement('div');
-    hourMarker.className = 'timeline-hour-marker';
+    hourMarker.className = 'hour-marker';
+    hourMarker.textContent = `${hour.toString().padStart(2, '0')}:00`;
     hourMarker.style.top = `${positionPercentage}%`;
     
-    // Créer le label d'heure
-    const hourLabel = document.createElement('div');
-    hourLabel.className = 'timeline-hour-label';
-    hourLabel.textContent = `${hour.toString().padStart(2, '0')}:00`;
-    hourLabel.style.top = `${positionPercentage}%`;
-    
-    timeline.appendChild(hourMarker);
-    timeline.appendChild(hourLabel);
+    hourMarkers.appendChild(hourMarker);
   }
+  
+  timeline.appendChild(hourMarkers);
   
   // Ajouter l'indicateur d'heure actuelle
   if (currentTimeInMinutes >= minTimeInMinutes && currentTimeInMinutes <= maxTimeInMinutes) {
@@ -157,14 +160,14 @@ function renderTimeline() {
     // Créer le label de temps actuel
     const timeLabel = document.createElement('div');
     timeLabel.className = 'current-time-label';
-    timeLabel.textContent = `⏱️ ${currentTimeStr}`;
+    timeLabel.textContent = `${currentTimeStr}`;
     timeLabel.style.top = `${positionPercentage}%`;
     
     timeline.appendChild(timeIndicator);
     timeline.appendChild(timeLabel);
   }
   
-  // Afficher les éléments du planning en position absolue avec style alterné
+  // Afficher les éléments du planning
   sortedData.forEach((item, index) => {
     // Calculer la position verticale en pourcentage
     const [hours, minutes] = item.time.split(':').map(Number);
@@ -174,10 +177,7 @@ function renderTimeline() {
     const timelineItem = document.createElement('div');
     timelineItem.className = 'timeline-item';
     
-    // Positionner l'élément
-    timelineItem.style.top = `${positionPercentage}%`;
-    
-    // Déterminer le côté (gauche/droite)
+    // Ajouter la classe gauche/droite en alternance
     if (index % 2 === 0) {
       timelineItem.classList.add('left');
     } else {
@@ -191,6 +191,9 @@ function renderTimeline() {
       timelineItem.classList.add('current');
     }
     
+    // Positionner l'élément
+    timelineItem.style.top = `${positionPercentage}%`;
+    
     const timelineContent = document.createElement('div');
     timelineContent.className = 'timeline-content';
     
@@ -202,8 +205,15 @@ function renderTimeline() {
     const icon = document.createElement('i');
     if (item.checked) {
       icon.className = 'fas fa-check-circle';
+      timelineContent.style.textDecoration = 'line-through';
+      timelineContent.style.opacity = '0.7';
+      timelineContent.style.borderLeftColor = '#2ed573';
+      timelineContent.style.borderRightColor = '#2ed573';
     } else if (index === currentIndex) {
       icon.className = 'fas fa-play-circle';
+      timelineContent.style.borderLeftColor = '#ff3300';
+      timelineContent.style.borderRightColor = '#ff3300';
+      timelineContent.style.boxShadow = '0 0 15px rgba(255, 51, 0, 0.3)';
     } else {
       icon.className = 'fas fa-clock';
     }
@@ -215,11 +225,6 @@ function renderTimeline() {
     const titleSpan = document.createElement('div');
     titleSpan.className = 'timeline-title';
     titleSpan.textContent = item.label;
-    
-    if (item.checked) {
-      titleSpan.style.textDecoration = 'line-through';
-      titleSpan.style.color = 'var(--mid)';
-    }
     
     timelineContent.appendChild(timeSpan);
     timelineContent.appendChild(titleSpan);
@@ -258,7 +263,7 @@ function updateTimeIndicator() {
       if (positionPercentage >= 0 && positionPercentage <= 100) {
         timeIndicator.style.top = `${positionPercentage}%`;
         timeLabel.style.top = `${positionPercentage}%`;
-        timeLabel.textContent = `⏱️ ${currentTimeStr}`;
+        timeLabel.textContent = currentTimeStr;
       }
     }
   }

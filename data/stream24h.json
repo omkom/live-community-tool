@@ -1,14 +1,14 @@
 {
   "planning": [
     {
-      "time": "00:00",
+      "time": "00:20",
       "label": "Introduction",
       "checked": false
     },
     {
-      "time": "01:00",
+      "time": "01:44",
       "label": "Jeu solo calme",
-      "checked": true
+      "checked": false
     },
     {
       "time": "02:00",
