@@ -1,9 +1,44 @@
-// public/js/index.js - Version avec heure et titre sur la même ligne
+// public/js/index.js - Version optimisée avec suivi temps réel avancé
 // Variables globales
 let ws = null;
 let planningData = [];
 let statusData = null;
 let streamStartTime = null; // Heure de début du stream
+let lastRenderTime = 0; // Eviter les rendus trop fréquents
+const RENDER_THROTTLE_MS = 5000; // Limiter le rendu complet à 5 secondes
+
+// Types d'événements et leurs couleurs
+const EVENT_TYPES = {
+  'Sport': { color: '#4CAF50', icon: 'fas fa-running' },
+  'Cuisine': { color: '#FF9800', icon: 'fas fa-utensils' },
+  'Jeu': { color: '#9C27B0', icon: 'fas fa-gamepad' },
+  'Talk': { color: '#2196F3', icon: 'fas fa-comments' },
+  'SIESTE': { color: '#795548', icon: 'fas fa-bed' },
+  'Création': { color: '#E91E63', icon: 'fas fa-paint-brush' },
+  'Podcast': { color: '#607D8B', icon: 'fas fa-microphone' },
+  'Radio': { color: '#00BCD4', icon: 'fas fa-broadcast-tower' },
+  'Défi': { color: '#F44336', icon: 'fas fa-trophy' },
+  'Discussion': { color: '#3F51B5', icon: 'fas fa-users' },
+  'Réveil': { color: '#FFEB3B', icon: 'fas fa-coffee' },
+  'Clôture': { color: '#9E9E9E', icon: 'fas fa-flag-checkered' },
+  'default': { color: '#00ffcc', icon: 'fas fa-calendar-check' }
+};
+
+// Détecter le type d'événement à partir du libellé
+function detectEventType(label) {
+  for (const [type, config] of Object.entries(EVENT_TYPES)) {
+    if (label.toLowerCase().includes(type.toLowerCase())) {
+      return type;
+    }
+  }
+  return 'default';
+}
+
+// Obtenir la configuration pour un type d'événement
+function getEventConfig(label) {
+  const type = detectEventType(label);
+  return EVENT_TYPES[type] || EVENT_TYPES.default;
+}
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
@@ -11,9 +46,24 @@ document.addEventListener('DOMContentLoaded', () => {
   loadPlanning();
   loadStatus();
   startClock();
+  
+  // Gestion du redimensionnement pour responsive design
+  window.addEventListener('resize', debounce(() => {
+    renderTimeline(false); // Ne pas forcer le re-rendu complet
+  }, 250));
 });
 
-// Initialisation WebSocket
+// Fonction debounce pour éviter trop d'appels
+function debounce(func, wait) {
+  let timeout;
+  return function() {
+    const context = this, args = arguments;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), wait);
+  };
+}
+
+// Initialisation WebSocket avec reconnexion automatique
 function initWebSocket() {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = `${protocol}//${window.location.host}?type=viewer`;
@@ -22,15 +72,18 @@ function initWebSocket() {
   
   ws.onopen = () => {
     console.log('Connexion WebSocket établie');
+    updateConnectionStatus('connected');
   };
   
   ws.onclose = () => {
     console.log('Connexion WebSocket perdue. Tentative de reconnexion...');
+    updateConnectionStatus('disconnected');
     setTimeout(initWebSocket, 3000); // Tentative de reconnexion après 3s
   };
   
   ws.onerror = (error) => {
     console.error('Erreur WebSocket:', error);
+    updateConnectionStatus('error');
   };
   
   ws.onmessage = (event) => {
@@ -44,11 +97,37 @@ function initWebSocket() {
         } else if (data.target === 'status') {
           loadStatus();
         }
+      } else if (data.type === 'effect') {
+        // Gérer les effets visuels envoyés depuis l'admin
+        triggerEffect(data.value);
+      } else if (data.type === 'message') {
+        // Afficher les messages envoyés depuis l'admin
+        showMessage(data.value);
       }
     } catch (e) {
       console.error('Erreur de parsing WebSocket:', e, event.data);
     }
   };
+}
+
+// Mise à jour visuelle de l'état de la connexion
+function updateConnectionStatus(status) {
+  const statusIndicator = document.getElementById('connection-status');
+  if (!statusIndicator) return;
+  
+  statusIndicator.className = `connection-status ${status}`;
+  
+  switch (status) {
+    case 'connected':
+      statusIndicator.title = 'Connecté au serveur';
+      break;
+    case 'disconnected':
+      statusIndicator.title = 'Déconnecté du serveur';
+      break;
+    case 'error':
+      statusIndicator.title = 'Erreur de connexion';
+      break;
+  }
 }
 
 // Chargement du planning
@@ -62,16 +141,31 @@ function loadPlanning() {
     })
     .then(data => {
       planningData = data.planning || [];
-      renderTimeline();
+      renderTimeline(true); // Forcer un nouveau rendu complet
     })
     .catch(error => {
       console.error('Erreur lors du chargement du planning:', error);
+      // Afficher un message d'erreur à l'utilisateur
+      showMessage('Erreur de chargement du planning. Rechargez la page.', 'error');
     });
 }
 
-// Rendu de la timeline
-function renderTimeline() {
+// Rendu de la timeline avec optimisation de performances
+function renderTimeline(forceRender = false) {
+  const now = Date.now();
+  
+  // Ne pas redessiner la timeline complète trop souvent sauf si forcé
+  if (!forceRender && now - lastRenderTime < RENDER_THROTTLE_MS) {
+    updateTimeIndicator();
+    updateCurrentStatus();
+    return;
+  }
+  
+  lastRenderTime = now;
+  
   const timeline = document.getElementById('timeline');
+  if (!timeline) return;
+  
   timeline.innerHTML = '';
   
   if (planningData.length === 0) {
@@ -99,7 +193,7 @@ function renderTimeline() {
   
   // Ajouter des marges pour éviter que le premier et le dernier événement soient collés aux bords
   minTimeInMinutes = Math.max(0, minTimeInMinutes - 60);  // -1h
-  maxTimeInMinutes = Math.min(24 * 60, maxTimeInMinutes + 240);  // +4h pour laisser de l'espace pour les derniers blocs
+  maxTimeInMinutes = Math.min(24 * 60, maxTimeInMinutes + 240);  // +4h pour laisser de l'espace
   
   // Durée totale en minutes
   const totalDurationInMinutes = maxTimeInMinutes - minTimeInMinutes;
@@ -134,13 +228,13 @@ function renderTimeline() {
   }
   
   // Calculer l'heure actuelle
-  const now = new Date();
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
+  const dateNow = new Date();
+  const currentHour = dateNow.getHours();
+  const currentMinute = dateNow.getMinutes();
   const currentTimeInMinutes = currentHour * 60 + currentMinute;
   const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
   
-  // Ajouter l'indicateur d'heure actuelle
+  // Ajouter l'indicateur d'heure actuelle avec animation fluide
   if (currentTimeInMinutes >= minTimeInMinutes && currentTimeInMinutes <= maxTimeInMinutes) {
     // Calculer la position verticale en pourcentage
     const positionPercentage = ((currentTimeInMinutes - minTimeInMinutes) / totalDurationInMinutes) * 100;
@@ -148,11 +242,13 @@ function renderTimeline() {
     // Créer l'indicateur de temps actuel
     const timeIndicator = document.createElement('div');
     timeIndicator.className = 'current-time-indicator';
+    timeIndicator.id = 'current-time-indicator';
     timeIndicator.style.top = `${positionPercentage}%`;
     
     // Créer le label de temps actuel
     const timeLabel = document.createElement('div');
     timeLabel.className = 'current-time-label';
+    timeLabel.id = 'current-time-label';
     timeLabel.textContent = currentTimeStr;
     timeLabel.style.top = `${positionPercentage}%`;
     
@@ -162,14 +258,80 @@ function renderTimeline() {
   
   // Trouver l'élément actuel ou prochain
   let currentIndex = -1;
+  let nextIndex = -1;
   
   for (let i = 0; i < sortedData.length; i++) {
-    if (sortedData[i].time <= currentTimeStr && !sortedData[i].checked) {
-      currentIndex = i;
+    const itemTime = sortedData[i].time;
+    
+    if (itemTime <= currentTimeStr) {
+      if (!sortedData[i].checked) {
+        currentIndex = i;
+      }
+    } else if (nextIndex === -1) {
+      nextIndex = i;
     }
   }
   
-  // Afficher les éléments du planning
+  // Créer un "Now Playing" pour l'élément actuel
+  if (currentIndex !== -1) {
+    const nowPlaying = document.createElement('div');
+    nowPlaying.className = 'now-playing';
+    nowPlaying.id = 'now-playing';
+    
+    const nowPlayingIcon = document.createElement('i');
+    const eventConfig = getEventConfig(sortedData[currentIndex].label);
+    nowPlayingIcon.className = eventConfig.icon;
+    nowPlayingIcon.style.color = eventConfig.color;
+    
+    const nowPlayingText = document.createElement('span');
+    nowPlayingText.textContent = `EN COURS : ${sortedData[currentIndex].label}`;
+    
+    nowPlaying.appendChild(nowPlayingIcon);
+    nowPlaying.appendChild(nowPlayingText);
+    
+    timeline.parentNode.insertBefore(nowPlaying, timeline);
+  }
+  
+  // Créer un "À venir" pour le prochain élément
+  let comingUp = document.getElementById('coming-up');
+  if (nextIndex !== -1) {
+    if (!comingUp) {
+      comingUp = document.createElement('div');
+      comingUp.className = 'coming-up';
+      comingUp.id = 'coming-up';
+      
+      const comingUpIcon = document.createElement('i');
+      const eventConfig = getEventConfig(sortedData[nextIndex].label);
+      comingUpIcon.className = eventConfig.icon;
+      comingUpIcon.style.color = eventConfig.color;
+      
+      const comingUpText = document.createElement('span');
+      comingUpText.textContent = `À SUIVRE : ${sortedData[nextIndex].label} (${sortedData[nextIndex].time})`;
+      
+      comingUp.appendChild(comingUpIcon);
+      comingUp.appendChild(comingUpText);
+      
+      if (document.getElementById('now-playing')) {
+        timeline.parentNode.insertBefore(comingUp, timeline);
+      } else {
+        timeline.parentNode.insertBefore(comingUp, timeline);
+      }
+    } else {
+      // Mettre à jour le contenu de l'élément existant
+      const comingUpIcon = comingUp.querySelector('i');
+      const comingUpText = comingUp.querySelector('span');
+      const eventConfig = getEventConfig(sortedData[nextIndex].label);
+      
+      comingUpIcon.className = eventConfig.icon;
+      comingUpIcon.style.color = eventConfig.color;
+      comingUpText.textContent = `À SUIVRE : ${sortedData[nextIndex].label} (${sortedData[nextIndex].time})`;
+    }
+  } else if (comingUp) {
+    // Supprimer l'élément "À venir" s'il n'y a pas de prochain élément
+    comingUp.remove();
+  }
+  
+  // Afficher les éléments du planning avec coloration selon le type
   sortedData.forEach((item, index) => {
     // Calculer la position verticale en pourcentage
     const [hours, minutes] = item.time.split(':').map(Number);
@@ -178,6 +340,10 @@ function renderTimeline() {
     
     const timelineItem = document.createElement('div');
     timelineItem.className = 'timeline-item';
+    timelineItem.dataset.index = index;
+    
+    // Détecter le type d'événement et appliquer coloration
+    const eventConfig = getEventConfig(item.label);
     
     // Ajouter la classe gauche/droite en alternance
     if (index % 2 === 0) {
@@ -191,6 +357,8 @@ function renderTimeline() {
       timelineItem.classList.add('done');
     } else if (index === currentIndex) {
       timelineItem.classList.add('current');
+    } else if (index === nextIndex) {
+      timelineItem.classList.add('next');
     }
     
     // Positionner l'élément par le haut à l'horaire exact
@@ -200,23 +368,37 @@ function renderTimeline() {
     const timelineContent = document.createElement('div');
     timelineContent.className = 'timeline-content';
     
+    // Appliquer la couleur spécifique au type d'événement
+    if (index === currentIndex) {
+      timelineContent.style.borderColor = '#ff3300';  // Rouge vif pour l'élément actuel
+      timelineContent.style.boxShadow = `0 0 15px ${eventConfig.color}`;
+    } else {
+      if (timelineItem.classList.contains('left')) {
+        timelineContent.style.borderRight = `3px solid ${eventConfig.color}`;
+      } else {
+        timelineContent.style.borderLeft = `3px solid ${eventConfig.color}`;
+      }
+    }
+    
     // Créer un conteneur pour l'heure et le titre (sur la même ligne)
     const contentHeader = document.createElement('div');
     contentHeader.className = 'timeline-content-header';
     
-    // Créer l'icône d'heure
+    // Créer l'icône d'heure avec le bon type d'événement
     const timeSpan = document.createElement('span');
     timeSpan.className = 'timeline-time';
     
-    // Ajouter une icône selon le statut
+    // Ajouter une icône selon le statut et le type
     const icon = document.createElement('i');
     if (item.checked) {
       icon.className = 'fas fa-check-circle';
     } else if (index === currentIndex) {
       icon.className = 'fas fa-play-circle';
     } else {
-      icon.className = 'fas fa-clock';
+      icon.className = eventConfig.icon;
     }
+    
+    icon.style.color = eventConfig.color;
     
     timeSpan.appendChild(icon);
     timeSpan.appendChild(document.createTextNode(` ${item.time}`));
@@ -225,6 +407,21 @@ function renderTimeline() {
     const titleSpan = document.createElement('span');
     titleSpan.className = 'timeline-title';
     titleSpan.textContent = item.label;
+    
+    // Ajouter un badge d'état si nécessaire
+    if (index === currentIndex) {
+      const badge = document.createElement('span');
+      badge.className = 'badge current';
+      badge.textContent = 'EN COURS';
+      titleSpan.appendChild(document.createTextNode(' '));
+      titleSpan.appendChild(badge);
+    } else if (index === nextIndex) {
+      const badge = document.createElement('span');
+      badge.className = 'badge next';
+      badge.textContent = 'À SUIVRE';
+      titleSpan.appendChild(document.createTextNode(' '));
+      titleSpan.appendChild(badge);
+    }
     
     // Assembler le header (heure + titre)
     contentHeader.appendChild(timeSpan);
@@ -241,6 +438,21 @@ function renderTimeline() {
   timeline.dataset.minTime = minTimeInMinutes;
   timeline.dataset.maxTime = maxTimeInMinutes;
   timeline.dataset.duration = totalDurationInMinutes;
+  
+  // Auto-scroll vers l'élément actuel
+  if (currentIndex !== -1) {
+    const currentItem = document.querySelector('.timeline-item.current');
+    if (currentItem) {
+      const parentHeight = timeline.clientHeight;
+      const itemTop = parseFloat(currentItem.style.top);
+      const scrollPos = (itemTop / 100) * timeline.scrollHeight - (parentHeight / 2);
+      
+      timeline.scrollTo({
+        top: scrollPos,
+        behavior: 'smooth'
+      });
+    }
+  }
 }
 
 // Fonction pour mettre à jour uniquement l'indicateur de temps
@@ -248,15 +460,18 @@ function updateTimeIndicator() {
   const now = new Date();
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
-  const currentTimeInMinutes = currentHour * 60 + currentMinute;
+  const currentSecond = now.getSeconds();
+  const currentTimeInMinutes = currentHour * 60 + currentMinute + (currentSecond / 60);
   const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
   
-  const timeIndicator = document.querySelector('.current-time-indicator');
-  const timeLabel = document.querySelector('.current-time-label');
+  const timeIndicator = document.getElementById('current-time-indicator');
+  const timeLabel = document.getElementById('current-time-label');
   
   if (timeIndicator && timeLabel) {
     // Récupérer les bornes de temps depuis data attributes
     const timeline = document.getElementById('timeline');
+    if (!timeline) return;
+    
     const minTimeInMinutes = parseInt(timeline.dataset.minTime || 0);
     const totalDurationInMinutes = parseInt(timeline.dataset.duration || (24 * 60));
     
@@ -265,10 +480,73 @@ function updateTimeIndicator() {
       
       // Ne mettre à jour que si l'indicateur est dans la plage visible
       if (positionPercentage >= 0 && positionPercentage <= 100) {
+        // Utiliser CSS transition pour une animation fluide
+        timeIndicator.style.transition = 'top 1s linear';
+        timeLabel.style.transition = 'top 1s linear';
+        
         timeIndicator.style.top = `${positionPercentage}%`;
         timeLabel.style.top = `${positionPercentage}%`;
         timeLabel.textContent = currentTimeStr;
       }
+    }
+  }
+}
+
+// Mettre à jour le statut actuel/à venir
+function updateCurrentStatus() {
+  if (!planningData || planningData.length === 0) return;
+
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+
+  // Trier les éléments par heure
+  const sortedData = [...planningData].sort((a, b) => a.time.localeCompare(b.time));
+
+  // Trouver l'élément actuel ou prochain
+  let currentIndex = -1;
+  let nextIndex = -1;
+
+  for (let i = 0; i < sortedData.length; i++) {
+    const itemTime = sortedData[i].time;
+
+    if (itemTime <= currentTimeStr) {
+      if (!sortedData[i].checked) {
+        currentIndex = i;
+      }
+    } else if (nextIndex === -1) {
+      nextIndex = i;
+    }
+  }
+
+  // Mettre à jour le bloc "En cours" et "À suivre"
+  const statusBlock = document.getElementById('status-block');
+  if (statusBlock) {
+    statusBlock.innerHTML = ''; // Réinitialiser le contenu
+
+    if (currentIndex !== -1) {
+      const nowPlaying = document.createElement('div');
+      nowPlaying.className = 'now-playing';
+      const eventConfig = getEventConfig(sortedData[currentIndex].label);
+
+      nowPlaying.innerHTML = `
+        <i class="${eventConfig.icon}" style="color: ${eventConfig.color};"></i>
+        <span>EN COURS : ${sortedData[currentIndex].label}</span>
+      `;
+      statusBlock.appendChild(nowPlaying);
+    }
+
+    if (nextIndex !== -1) {
+      const comingUp = document.createElement('div');
+      comingUp.className = 'coming-up';
+      const eventConfig = getEventConfig(sortedData[nextIndex].label);
+
+      comingUp.innerHTML = `
+        <i class="${eventConfig.icon}" style="color: ${eventConfig.color};"></i>
+        <span>À SUIVRE : ${sortedData[nextIndex].label} (${sortedData[nextIndex].time})</span>
+      `;
+      statusBlock.appendChild(comingUp);
     }
   }
 }
@@ -303,19 +581,52 @@ function updateStatusDisplay() {
   const subsGoal = document.getElementById('subs-goal');
   const subsProgress = document.getElementById('subs-progress');
   
-  // Mettre à jour les valeurs
-  donationCurrent.textContent = statusData.donation_total;
+  if (!donationCurrent || !donationGoal || !donationProgress || !subsCurrent || !subsGoal || !subsProgress) {
+    return;
+  }
+  
+  // Animation des changements de valeur
+  const animateDonationChange = donationCurrent.textContent !== statusData.donation_total.toString();
+  const animateSubsChange = subsCurrent.textContent !== statusData.subs_total.toString();
+  
+  // Mettre à jour les valeurs avec animations
+  if (animateDonationChange) {
+    animateValue(donationCurrent, parseInt(donationCurrent.textContent) || 0, statusData.donation_total, 1000);
+  } else {
+    donationCurrent.textContent = statusData.donation_total;
+  }
+  
+  if (animateSubsChange) {
+    animateValue(subsCurrent, parseInt(subsCurrent.textContent) || 0, statusData.subs_total, 1000);
+  } else {
+    subsCurrent.textContent = statusData.subs_total;
+  }
+  
   donationGoal.textContent = statusData.donation_goal;
-  subsCurrent.textContent = statusData.subs_total;
   subsGoal.textContent = statusData.subs_goal;
   
   // Calculer les pourcentages
   const donationPercent = Math.min(100, Math.round((statusData.donation_total / statusData.donation_goal) * 100));
   const subsPercent = Math.min(100, Math.round((statusData.subs_total / statusData.subs_goal) * 100));
   
-  // Mettre à jour les barres de progression
+  // Mettre à jour les barres de progression avec animation
   donationProgress.style.width = `${donationPercent}%`;
   subsProgress.style.width = `${subsPercent}%`;
+  
+  // Ajouter une animation si changement
+  if (animateDonationChange) {
+    const section = donationProgress.closest('.progress-section');
+    section.classList.remove('pulse-animation');
+    void section.offsetWidth; // Force reflow
+    section.classList.add('pulse-animation');
+  }
+  
+  if (animateSubsChange) {
+    const section = subsProgress.closest('.progress-section');
+    section.classList.remove('pulse-animation');
+    void section.offsetWidth; // Force reflow
+    section.classList.add('pulse-animation');
+  }
   
   // Mettre à jour l'heure de début du stream si elle existe
   if (statusData.stream_start_time) {
@@ -327,7 +638,34 @@ function updateStatusDisplay() {
   }
 }
 
-// Horloge du stream
+// Animation des valeurs numériques
+function animateValue(obj, start, end, duration) {
+  if (start === end) return;
+  const range = end - start;
+  const minFrames = 20;
+  let stepCount = Math.abs(Math.floor(duration / 16));
+  stepCount = Math.max(stepCount, minFrames);
+  const step = range / stepCount;
+  const increment = end > start ? step : -step;
+  const startTimestamp = performance.now();
+  
+  function animate(timestamp) {
+    const elapsed = timestamp - startTimestamp;
+    const progress = Math.min(elapsed / duration, 1);
+    const currentValue = Math.floor(start + (range * progress));
+    
+    obj.textContent = currentValue;
+    if (progress < 1) {
+      window.requestAnimationFrame(animate);
+    } else {
+      obj.textContent = end;
+    }
+  }
+  
+  window.requestAnimationFrame(animate);
+}
+
+// Horloge du stream avec animation fluide
 function startClock() {
   const updateClock = () => {
     const now = new Date();
@@ -346,17 +684,22 @@ function startClock() {
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
     const seconds = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
     
-    document.getElementById('stream-time').textContent = `${hours}:${minutes}:${seconds}`;
-    
-    // Mettre à jour uniquement l'indicateur de temps toutes les 10 secondes
-    // pour éviter de reconstruire toute la timeline trop fréquemment
-    if (parseInt(seconds) % 10 === 0) {
-      updateTimeIndicator();
+    const streamTimeElement = document.getElementById('stream-time');
+    if (streamTimeElement) {
+      streamTimeElement.textContent = `${hours}:${minutes}:${seconds}`;
     }
     
-    // Mettre à jour la timeline chaque minute
+    // Mettre à jour l'indicateur de temps chaque seconde pour une animation fluide
+    updateTimeIndicator();
+    
+    // Mettre à jour le statut actuel/à venir toutes les 10 secondes
+    if (parseInt(seconds) % 10 === 0) {
+      updateCurrentStatus();
+    }
+    
+    // Rendez complet de la timeline chaque minute pour être sûr
     if (seconds === '00') {
-      renderTimeline();
+      renderTimeline(true);
     }
   };
   
@@ -364,7 +707,70 @@ function startClock() {
   setInterval(updateClock, 1000);
 }
 
-// Mettre à jour toutes les 30 secondes
+// Déclencher un effet visuel (appelé via WebSocket)
+function triggerEffect(type) {
+  // Créer un élément d'effet
+  const effectBox = document.createElement('div');
+  effectBox.className = `effect-box effect-${type}`;
+  
+  // Contenu de l'effet selon le type
+  const content = document.createElement('div');
+  content.className = 'effect-content';
+  
+  switch (type) {
+    case 'tada':
+      content.innerHTML = '<i class="fas fa-star"></i> TADA <i class="fas fa-star"></i>';
+      break;
+    case 'flash':
+      content.innerHTML = '<i class="fas fa-bolt"></i> FLASH';
+      break;
+    case 'zoom':
+      content.innerHTML = '<i class="fas fa-search-plus"></i> ZOOM';
+      break;
+    case 'shake':
+      content.innerHTML = '<i class="fas fa-dizzy"></i> SHAKE';
+      break;
+    case 'bounce':
+      content.innerHTML = '<i class="fas fa-basketball-ball"></i> BOUNCE';
+      break;
+    case 'pulse':
+      content.innerHTML = '<i class="fas fa-heartbeat"></i> PULSE';
+      break;
+    default:
+      content.innerHTML = `<i class="fas fa-magic"></i> ${type.toUpperCase()}`;
+  }
+  
+  effectBox.appendChild(content);
+  document.body.appendChild(effectBox);
+  
+  // Retirer l'effet après l'animation
+  setTimeout(() => {
+    effectBox.classList.add('effect-out');
+    setTimeout(() => {
+      document.body.removeChild(effectBox);
+    }, 500);
+  }, 3000);
+}
+
+// Afficher un message (appelé via WebSocket)
+function showMessage(text, type = 'info') {
+  // Créer un élément de message
+  const messageBox = document.createElement('div');
+  messageBox.className = `message-box message-${type}`;
+  messageBox.textContent = text;
+  
+  document.body.appendChild(messageBox);
+  
+  // Retirer le message après un délai
+  setTimeout(() => {
+    messageBox.classList.add('message-out');
+    setTimeout(() => {
+      document.body.removeChild(messageBox);
+    }, 500);
+  }, 5000);
+}
+
+// Mise à jour périodique du statut (dons, abonnements)
 setInterval(() => {
   loadStatus();
 }, 30000);

@@ -1,6 +1,11 @@
 {
   "planning": [
     {
+      "time": "06:52",
+      "label": "Nouveau moment",
+      "checked": false
+    },
+    {
       "time": "08:00",
       "label": "Introduction",
       "checked": false
