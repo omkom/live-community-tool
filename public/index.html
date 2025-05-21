@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stream 24h - Planning</title>
+  <title>Stream 24h - Planning & Status</title>
   <link rel="stylesheet" href="css/index.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
@@ -14,19 +14,61 @@
         <i class="fas fa-broadcast-tower"></i>
         <span>STREAM 24H</span>
       </div>
-      <div class="subtitle">Marathon en direct - Planification complète</div>
+      <div class="subtitle">Marathon en direct</div>
       <div class="timer">
         <i class="fas fa-clock timer-icon"></i>
         <span id="stream-time">00:00:00</span>
+        <span id="connection-status" class="connection-status"></span>
       </div>
     </div>
     
-    <!-- Timeline avec attributs data pour faciliter les calculs -->
-    <div class="timeline" id="timeline" data-min-time="0" data-max-time="1440" data-duration="1440">
-      <!-- Le contenu sera généré en JS -->
+    <!-- Status Section -->
+    <div class="status-section" id="status-block">
+      <!-- Current and upcoming activities will be inserted here -->
     </div>
     
+    <!-- Status Container 
+    <div class="donation-container">
+      <div class="donation-header">
+        <i class="fas fa-chart-line icon"></i>
+        <div class="donation-title">Progression du Stream</div>
+      </div>
+      
+      <div class="progress-section">
+        <div class="progress-info">
+          <div class="progress-label">
+            <i class="fas fa-donate icon"></i>
+            <span>Dons</span>
+          </div>
+          <div class="progress-value">
+            <span id="donation-current">0</span>€ / <span id="donation-goal">1000</span>€
+          </div>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar" id="donation-progress" style="width: 0%"></div>
+        </div>
+      </div>
+      
+      <div class="progress-section">
+        <div class="progress-info">
+          <div class="progress-label">
+            <i class="fas fa-star icon"></i>
+            <span>Abonnements</span>
+          </div>
+          <div class="progress-value">
+            <span id="subs-current">0</span> / <span id="subs-goal">50</span>
+          </div>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar" id="subs-progress" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>-->
     
+    <!-- Timeline -->
+    <div class="timeline" id="timeline">
+      <!-- The content will be generated in JS -->
+    </div>
   </div>
   
   <script src="js/index.js"></script>

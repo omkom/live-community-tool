@@ -8,6 +8,7 @@ const path = require('path');
 // Modules serveur
 const logger = require('./server/logger');
 const validate = require('./server/validator');
+const twitch = require('./server/twitch');
 
 const app = express();
 const server = http.createServer(app);
@@ -242,6 +243,75 @@ app.get('/api/logs', (req, res) => {
     res.json({ logs });
   } catch (err) {
     res.status(500).json({ error: 'Erreur lors de la récupération des logs' });
+  }
+});
+
+// Routes Twitch
+app.get('/api/twitch/status', (req, res) => {
+  res.json({
+    enabled: twitch.getConfig().enabled,
+    connected: twitch.getConfig().enabled && twitch.getConfig().twitch.channelName
+  });
+});
+
+app.post('/api/twitch/config', (req, res) => {
+  try {
+    const { enabled, ...config } = req.body;
+    
+    if (typeof enabled === 'boolean') {
+      twitch.setEnabled(enabled);
+    }
+    
+    if (Object.keys(config).length > 0) {
+      twitch.initialize(config);
+    }
+    
+    res.json({
+      success: true,
+      config: twitch.getConfig()
+    });
+  } catch (err) {
+    logger.error(`Erreur de configuration Twitch: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Configurer les événements Twitch
+twitch.on('donation', (data) => {
+  // Déclencher un effet et un message
+  broadcast({ type: 'effect', value: 'tada' });
+  broadcast({ type: 'message', value: `${data.username} a donné ${data.amount}${data.currency}!` });
+  
+  // Log de l'événement
+  logger.activity('twitch_donation', data);
+});
+
+twitch.on('subscription', (data) => {
+  broadcast({ type: 'effect', value: 'pulse' });
+  broadcast({ type: 'message', value: `${data.username} s'est abonné${data.isResub ? ' pour ' + data.months + ' mois' : ''}!` });
+  
+  logger.activity('twitch_subscription', data);
+});
+
+twitch.on('follow', (data) => {
+  broadcast({ type: 'message', value: `${data.username} suit maintenant la chaîne!` });
+  
+  logger.activity('twitch_follow', data);
+});
+
+twitch.on('cheer', (data) => {
+  broadcast({ type: 'effect', value: 'bounce' });
+  broadcast({ type: 'message', value: `${data.username} a donné ${data.bits} bits!` });
+  
+  logger.activity('twitch_cheer', data);
+});
+
+// Initialiser l'intégration Twitch
+twitch.initialize().then(success => {
+  if (success) {
+    logger.log('Intégration Twitch initialisée');
+  } else {
+    logger.log('Intégration Twitch non initialisée ou désactivée');
   }
 });
 

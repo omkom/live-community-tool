@@ -1,11 +1,11 @@
-// public/js/index.js - Version optimisée avec suivi temps réel avancé
+// public/js/index.js - Optimized for the 24h stream timeline
 // Variables globales
 let ws = null;
 let planningData = [];
 let statusData = null;
-let streamStartTime = null; // Heure de début du stream
-let lastRenderTime = 0; // Eviter les rendus trop fréquents
-const RENDER_THROTTLE_MS = 5000; // Limiter le rendu complet à 5 secondes
+let streamStartTime = null;
+let lastRenderTime = 0;
+const RENDER_THROTTLE_MS = 5000; 
 
 // Types d'événements et leurs couleurs
 const EVENT_TYPES = {
@@ -24,22 +24,6 @@ const EVENT_TYPES = {
   'default': { color: '#00ffcc', icon: 'fas fa-calendar-check' }
 };
 
-// Détecter le type d'événement à partir du libellé
-function detectEventType(label) {
-  for (const [type, config] of Object.entries(EVENT_TYPES)) {
-    if (label.toLowerCase().includes(type.toLowerCase())) {
-      return type;
-    }
-  }
-  return 'default';
-}
-
-// Obtenir la configuration pour un type d'événement
-function getEventConfig(label) {
-  const type = detectEventType(label);
-  return EVENT_TYPES[type] || EVENT_TYPES.default;
-}
-
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
   initWebSocket();
@@ -49,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Gestion du redimensionnement pour responsive design
   window.addEventListener('resize', debounce(() => {
-    renderTimeline(false); // Ne pas forcer le re-rendu complet
+    renderTimeline(false);
   }, 250));
 });
 
@@ -61,6 +45,23 @@ function debounce(func, wait) {
     clearTimeout(timeout);
     timeout = setTimeout(() => func.apply(context, args), wait);
   };
+}
+
+// Détecter le type d'événement à partir du libellé
+function detectEventType(label) {
+  const labelLower = label.toLowerCase();
+  for (const [type, config] of Object.entries(EVENT_TYPES)) {
+    if (labelLower.includes(type.toLowerCase())) {
+      return type;
+    }
+  }
+  return 'default';
+}
+
+// Obtenir la configuration pour un type d'événement
+function getEventConfig(label) {
+  const type = detectEventType(label);
+  return EVENT_TYPES[type] || EVENT_TYPES.default;
 }
 
 // Initialisation WebSocket avec reconnexion automatique
@@ -78,7 +79,7 @@ function initWebSocket() {
   ws.onclose = () => {
     console.log('Connexion WebSocket perdue. Tentative de reconnexion...');
     updateConnectionStatus('disconnected');
-    setTimeout(initWebSocket, 3000); // Tentative de reconnexion après 3s
+    setTimeout(initWebSocket, 3000);
   };
   
   ws.onerror = (error) => {
@@ -98,10 +99,8 @@ function initWebSocket() {
           loadStatus();
         }
       } else if (data.type === 'effect') {
-        // Gérer les effets visuels envoyés depuis l'admin
         triggerEffect(data.value);
       } else if (data.type === 'message') {
-        // Afficher les messages envoyés depuis l'admin
         showMessage(data.value);
       }
     } catch (e) {
@@ -141,11 +140,10 @@ function loadPlanning() {
     })
     .then(data => {
       planningData = data.planning || [];
-      renderTimeline(true); // Forcer un nouveau rendu complet
+      renderTimeline(true);
     })
     .catch(error => {
       console.error('Erreur lors du chargement du planning:', error);
-      // Afficher un message d'erreur à l'utilisateur
       showMessage('Erreur de chargement du planning. Rechargez la page.', 'error');
     });
 }
@@ -180,8 +178,8 @@ function renderTimeline(forceRender = false) {
   const sortedData = [...planningData].sort((a, b) => a.time.localeCompare(b.time));
   
   // Déterminer les bornes de temps pour la journée (min et max)
-  let minTimeInMinutes = 24 * 60;  // Initialiser à la fin de la journée
-  let maxTimeInMinutes = 0;        // Initialiser au début de la journée
+  let minTimeInMinutes = 24 * 60;
+  let maxTimeInMinutes = 0;
   
   sortedData.forEach(item => {
     const [hours, minutes] = item.time.split(':').map(Number);
@@ -192,8 +190,8 @@ function renderTimeline(forceRender = false) {
   });
   
   // Ajouter des marges pour éviter que le premier et le dernier événement soient collés aux bords
-  minTimeInMinutes = Math.max(0, minTimeInMinutes - 60);  // -1h
-  maxTimeInMinutes = Math.min(24 * 60, maxTimeInMinutes + 240);  // +4h pour laisser de l'espace
+  minTimeInMinutes = Math.max(0, minTimeInMinutes - 60);
+  maxTimeInMinutes = Math.min(24 * 60, maxTimeInMinutes + 240);
   
   // Durée totale en minutes
   const totalDurationInMinutes = maxTimeInMinutes - minTimeInMinutes;
@@ -256,6 +254,11 @@ function renderTimeline(forceRender = false) {
     timeline.appendChild(timeLabel);
   }
   
+  // Ligne centrale de la timeline
+  const timelineLine = document.createElement('div');
+  timelineLine.className = 'timeline-line';
+  timeline.appendChild(timelineLine);
+  
   // Trouver l'élément actuel ou prochain
   let currentIndex = -1;
   let nextIndex = -1;
@@ -270,65 +273,6 @@ function renderTimeline(forceRender = false) {
     } else if (nextIndex === -1) {
       nextIndex = i;
     }
-  }
-  
-  // Créer un "Now Playing" pour l'élément actuel
-  if (currentIndex !== -1) {
-    const nowPlaying = document.createElement('div');
-    nowPlaying.className = 'now-playing';
-    nowPlaying.id = 'now-playing';
-    
-    const nowPlayingIcon = document.createElement('i');
-    const eventConfig = getEventConfig(sortedData[currentIndex].label);
-    nowPlayingIcon.className = eventConfig.icon;
-    nowPlayingIcon.style.color = eventConfig.color;
-    
-    const nowPlayingText = document.createElement('span');
-    nowPlayingText.textContent = `EN COURS : ${sortedData[currentIndex].label}`;
-    
-    nowPlaying.appendChild(nowPlayingIcon);
-    nowPlaying.appendChild(nowPlayingText);
-    
-    timeline.parentNode.insertBefore(nowPlaying, timeline);
-  }
-  
-  // Créer un "À venir" pour le prochain élément
-  let comingUp = document.getElementById('coming-up');
-  if (nextIndex !== -1) {
-    if (!comingUp) {
-      comingUp = document.createElement('div');
-      comingUp.className = 'coming-up';
-      comingUp.id = 'coming-up';
-      
-      const comingUpIcon = document.createElement('i');
-      const eventConfig = getEventConfig(sortedData[nextIndex].label);
-      comingUpIcon.className = eventConfig.icon;
-      comingUpIcon.style.color = eventConfig.color;
-      
-      const comingUpText = document.createElement('span');
-      comingUpText.textContent = `À SUIVRE : ${sortedData[nextIndex].label} (${sortedData[nextIndex].time})`;
-      
-      comingUp.appendChild(comingUpIcon);
-      comingUp.appendChild(comingUpText);
-      
-      if (document.getElementById('now-playing')) {
-        timeline.parentNode.insertBefore(comingUp, timeline);
-      } else {
-        timeline.parentNode.insertBefore(comingUp, timeline);
-      }
-    } else {
-      // Mettre à jour le contenu de l'élément existant
-      const comingUpIcon = comingUp.querySelector('i');
-      const comingUpText = comingUp.querySelector('span');
-      const eventConfig = getEventConfig(sortedData[nextIndex].label);
-      
-      comingUpIcon.className = eventConfig.icon;
-      comingUpIcon.style.color = eventConfig.color;
-      comingUpText.textContent = `À SUIVRE : ${sortedData[nextIndex].label} (${sortedData[nextIndex].time})`;
-    }
-  } else if (comingUp) {
-    // Supprimer l'élément "À venir" s'il n'y a pas de prochain élément
-    comingUp.remove();
   }
   
   // Afficher les éléments du planning avec coloration selon le type
@@ -370,7 +314,7 @@ function renderTimeline(forceRender = false) {
     
     // Appliquer la couleur spécifique au type d'événement
     if (index === currentIndex) {
-      timelineContent.style.borderColor = '#ff3300';  // Rouge vif pour l'élément actuel
+      timelineContent.style.borderColor = '#ff3300';
       timelineContent.style.boxShadow = `0 0 15px ${eventConfig.color}`;
     } else {
       if (timelineItem.classList.contains('left')) {
@@ -439,6 +383,9 @@ function renderTimeline(forceRender = false) {
   timeline.dataset.maxTime = maxTimeInMinutes;
   timeline.dataset.duration = totalDurationInMinutes;
   
+  // Mettre à jour le statut actuel/à venir
+  updateCurrentStatus(sortedData, currentIndex, nextIndex);
+  
   // Auto-scroll vers l'élément actuel
   if (currentIndex !== -1) {
     const currentItem = document.querySelector('.timeline-item.current');
@@ -493,30 +440,32 @@ function updateTimeIndicator() {
 }
 
 // Mettre à jour le statut actuel/à venir
-function updateCurrentStatus() {
-  if (!planningData || planningData.length === 0) return;
-
-  const now = new Date();
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
-  const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-
-  // Trier les éléments par heure
-  const sortedData = [...planningData].sort((a, b) => a.time.localeCompare(b.time));
-
-  // Trouver l'élément actuel ou prochain
-  let currentIndex = -1;
-  let nextIndex = -1;
-
-  for (let i = 0; i < sortedData.length; i++) {
-    const itemTime = sortedData[i].time;
-
-    if (itemTime <= currentTimeStr) {
-      if (!sortedData[i].checked) {
-        currentIndex = i;
+function updateCurrentStatus(sortedData, currentIndex, nextIndex) {
+  if (!sortedData) {
+    if (!planningData || planningData.length === 0) return;
+    
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+    
+    // Trier les éléments par heure
+    sortedData = [...planningData].sort((a, b) => a.time.localeCompare(b.time));
+    
+    // Trouver l'élément actuel ou prochain
+    currentIndex = -1;
+    nextIndex = -1;
+    
+    for (let i = 0; i < sortedData.length; i++) {
+      const itemTime = sortedData[i].time;
+      
+      if (itemTime <= currentTimeStr) {
+        if (!sortedData[i].checked) {
+          currentIndex = i;
+        }
+      } else if (nextIndex === -1) {
+        nextIndex = i;
       }
-    } else if (nextIndex === -1) {
-      nextIndex = i;
     }
   }
 

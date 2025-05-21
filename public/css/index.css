@@ -33,11 +33,7 @@ body {
   background: var(--dark);
   color: var(--light);
   line-height: 1.6;
-  background-image: url('https://images.unsplash.com/photo-1539321908154-04927596764d?q=80&w=1000');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  background: linear-gradient(to right, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0));
+
   position: relative;
   overflow-x: hidden;
 }
@@ -348,7 +344,7 @@ body::before {
 
 .current-time-label {
   position: absolute;
-  right: -75px;
+  right: 44%;
   background-color: rgba(0, 0, 0, 0.7);
   color: var(--now-playing);
   border: 1px solid var(--now-playing);
@@ -364,8 +360,8 @@ body::before {
 }
 
 @keyframes glowLine {
-  0% { box-shadow: 0 0 5px rgba(255, 51, 0, 0.5); }
-  100% { box-shadow: 0 0 15px rgba(255, 51, 0, 0.9); }
+  0% { box-shadow: 0 0 5px rgba(0, 179, 255, 0.5); }
+  100% { box-shadow: 0 0 15px rgba(0, 229, 255, 0.9); }
 }
 
 /* Contenus de texte dans timeline */
