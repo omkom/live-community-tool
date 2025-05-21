@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Stream 24h</title>
   <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/twitch-status.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -68,6 +69,9 @@
     <!-- Colonne Cagnotte & Interactions -->
     <div class="column">
       <div class="tabs">
+        <div class="tab" data-tab="twitch">
+          <i class="fas fa-broadcast-tower"></i> Twitch
+        </div>
         <div class="tab active" data-tab="cagnotte">
           <i class="fas fa-coins"></i> Cagnotte
         </div>
@@ -154,6 +158,10 @@
       </div>
       
       <!-- Tab Interactions -->
+      <div class="tab-content" id="twitch-tab">
+        <div id="twitch-status-panel"></div>
+      </div>
+
       <div class="tab-content" id="interactions-tab">
         <div class="card">
           <div class="card-header">
@@ -576,5 +584,26 @@
 
   <!-- Scripts -->
   <script src="js/admin.js"></script>
+  <script src="js/twitch-status.js"></script>
+  <script>
+    // Initialize the Twitch status manager when the page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      // Create the Twitch status manager
+      const twitchManager = new TwitchStatusManager('twitch-status-panel');
+      
+      // Handle tab visibility
+      const tabs = document.querySelectorAll('.tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const tabId = tab.getAttribute('data-tab');
+          if (tabId === 'twitch') {
+            twitchManager.setVisible(true);
+          } else {
+            twitchManager.setVisible(false);
+          }
+        });
+      });
+    });
+  </script>
 </body>
 </html>

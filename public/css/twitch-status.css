@@ -1,0 +1,89 @@
+/* public/css/twitch-status.css */
+.twitch-status-content {
+    padding: 15px;
+  }
+  
+  .status-indicators {
+    margin-bottom: 20px;
+  }
+  
+  .status-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .status-label {
+    font-weight: bold;
+    color: var(--primary);
+  }
+  
+  .status-value {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.9em;
+    font-weight: bold;
+  }
+  
+  .status-enabled {
+    background-color: rgba(46, 213, 115, 0.2);
+    color: #2ed573;
+  }
+  
+  .status-disabled {
+    background-color: rgba(255, 71, 87, 0.2);
+    color: #ff4757;
+  }
+  
+  .twitch-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  
+  .twitch-results {
+    background-color: var(--dark);
+    border-radius: 5px;
+    padding: 10px;
+    margin-top: 15px;
+  }
+  
+  .twitch-results h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: var(--primary);
+    font-size: 1rem;
+  }
+  
+  .twitch-results pre {
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 0.9rem;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+    max-height: 250px;
+    overflow-y: auto;
+  }
+  
+  .twitch-results pre.success {
+    border-left: 3px solid #2ed573;
+  }
+  
+  .twitch-results pre.error {
+    border-left: 3px solid #ff4757;
+  }
+  
+  .hidden {
+    display: none;
+  }
+  
+  /* Responsive styles */
+  @media (max-width: 768px) {
+    .twitch-actions {
+      flex-direction: column;
+    }
+  }

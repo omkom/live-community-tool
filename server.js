@@ -10,6 +10,9 @@ const logger = require('./server/logger');
 const validate = require('./server/validator');
 const twitch = require('./server/twitch');
 
+const TwitchMonitor = require('./server/twitch-monitor');
+const TwitchApiController = require('./server/controllers/twitch-api');
+
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
@@ -97,6 +100,59 @@ function broadcast(data, filterType = null) {
   
   logger.log(`Message diffusé à ${count} clients: ${typeof data === 'string' ? data.substring(0, 30) : JSON.stringify(data).substring(0, 30)}...`);
 }
+
+// Create a new section in server.js before the routes section:
+// ======= TWITCH INTEGRATION =======
+
+// Initialize the Twitch Monitor
+const twitchMonitor = new TwitchMonitor(twitch);
+
+// Initialize the Twitch API controller
+const twitchApiController = new TwitchApiController(twitch, twitchMonitor);
+
+// Register Twitch API routes
+twitchApiController.registerRoutes(app);
+
+// Monitor event handling
+twitchMonitor.on('connection:error', (data) => {
+  logger.error(`Twitch connection error: ${data.error}`);
+});
+
+twitchMonitor.on('subscriptions:synced', (data) => {
+  logger.log(`Twitch subscriptions synced: ${data.count} total subs`);
+});
+
+// Start monitoring if Twitch integration is enabled
+if (twitch.getConfig().enabled) {
+  twitchMonitor.start();
+}
+
+// Add subscription sync handling to the existing Twitch events
+twitch.on('subscription', async (data) => {
+  // This code should be added to the existing subscription handler in server.js
+  // Update the subscription count
+  try {
+    const statusPath = STATUS_DATA_PATH;
+    let status = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
+    
+    // Increment subscription count
+    status.subs_total = (parseInt(status.subs_total) || 0) + 1;
+    status.last_update = new Date().toISOString();
+    
+    // Save updated status
+    fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
+    
+    // Notify clients
+    broadcast({ type: 'update', target: 'status' });
+    
+    // Log the event
+    logger.log(`New subscription from ${data.username}, updated total: ${status.subs_total}`);
+    
+    // Additional event handling logic can remain the same...
+  } catch (err) {
+    logger.error(`Error updating subscription count: ${err.message}`);
+  }
+});
 
 // ======= ROUTES API =======
 
