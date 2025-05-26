@@ -2,13 +2,14 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stream 24h - Planning & Status</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Stream 24h - Planning</title>
   <link rel="stylesheet" href="css/index.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
   <div class="container">
+    <!-- Header fixe -->
     <div class="header">
       <div class="logo">
         <i class="fas fa-broadcast-tower"></i>
@@ -18,59 +19,53 @@
       <div class="timer">
         <i class="fas fa-clock timer-icon"></i>
         <span id="stream-time">00:00:00</span>
-        <span id="connection-status" class="connection-status"></span>
+        <span id="connection-status" class="connection-status connected"></span>
       </div>
     </div>
     
-    <!-- Status Section -->
+    <!-- Section status fixe -->
     <div class="status-section" id="status-block">
-      <!-- Current and upcoming activities will be inserted here -->
+      <!-- Le contenu sera généré dynamiquement -->
     </div>
     
-    <!-- Status Container 
-    <div class="donation-container">
-      <div class="donation-header">
-        <i class="fas fa-chart-line icon"></i>
-        <div class="donation-title">Progression du Stream</div>
-      </div>
-      
-      <div class="progress-section">
-        <div class="progress-info">
-          <div class="progress-label">
-            <i class="fas fa-donate icon"></i>
-            <span>Dons</span>
-          </div>
-          <div class="progress-value">
-            <span id="donation-current">0</span>€ / <span id="donation-goal">1000</span>€
-          </div>
-        </div>
-        <div class="progress-container">
-          <div class="progress-bar" id="donation-progress" style="width: 0%"></div>
-        </div>
-      </div>
-      
-      <div class="progress-section">
-        <div class="progress-info">
-          <div class="progress-label">
-            <i class="fas fa-star icon"></i>
-            <span>Abonnements</span>
-          </div>
-          <div class="progress-value">
-            <span id="subs-current">0</span> / <span id="subs-goal">50</span>
-          </div>
-        </div>
-        <div class="progress-container">
-          <div class="progress-bar" id="subs-progress" style="width: 0%"></div>
-        </div>
-      </div>
-    </div>-->
-    
-    <!-- Timeline -->
+    <!-- Timeline scrollable -->
     <div class="timeline" id="timeline">
-      <!-- The content will be generated in JS -->
+      <div class="timeline-line"></div>
+      <!-- Le contenu sera généré dynamiquement -->
     </div>
   </div>
   
+  <!-- Script principal -->
   <script src="js/index.js"></script>
+  
+  <!-- Script d'optimisation du scroll -->
+  <script>
+    // S'assurer que la page ne peut pas être scrollée sur mobile
+    document.addEventListener('touchmove', function(e) {
+      if (!e.target.closest('.timeline')) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+    
+    // Empêcher le zoom sur double tap
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function(e) {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        e.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+    
+    // Gérer la hauteur sur mobile pour éviter les problèmes avec la barre d'adresse
+    function setViewportHeight() {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    
+    setViewportHeight();
+    window.addEventListener('resize', setViewportHeight);
+    window.addEventListener('orientationchange', setViewportHeight);
+  </script>
 </body>
 </html>

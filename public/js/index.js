@@ -5,7 +5,9 @@ let planningData = [];
 let statusData = null;
 let streamStartTime = null;
 let lastRenderTime = 0;
-const RENDER_THROTTLE_MS = 5000; 
+const RENDER_THROTTLE_MS = 5000;
+let userScrollTimeout;
+let isUserScrolling = false;
 
 // Types d'événements et leurs couleurs
 const EVENT_TYPES = {
@@ -30,12 +32,67 @@ document.addEventListener('DOMContentLoaded', () => {
   loadPlanning();
   loadStatus();
   startClock();
+  initScrollHandlers();
   
   // Gestion du redimensionnement pour responsive design
   window.addEventListener('resize', debounce(() => {
     renderTimeline(false);
   }, 250));
 });
+
+// Initialisation des gestionnaires de scroll
+function initScrollHandlers() {
+  const timeline = document.getElementById('timeline');
+  
+  if (timeline) {
+    // Détecter quand l'utilisateur scrolle
+    timeline.addEventListener('scroll', () => {
+      isUserScrolling = true;
+      
+      // Réinitialiser le flag après 10 secondes d'inactivité
+      clearTimeout(userScrollTimeout);
+      userScrollTimeout = setTimeout(() => {
+        isUserScrolling = false;
+        // Revenir à l'élément actuel après l'inactivité
+        autoScrollToCurrentItem();
+      }, 10000);
+    });
+  }
+}
+
+// Fonction pour gérer le scroll automatique de la timeline
+function autoScrollToCurrentItem() {
+  if (isUserScrolling) return;
+  
+  const timeline = document.getElementById('timeline');
+  const currentItem = document.querySelector('.timeline-item.current');
+  
+  if (!timeline || !currentItem) return;
+  
+  // Récupérer les positions
+  const timelineRect = timeline.getBoundingClientRect();
+  const itemRect = currentItem.getBoundingClientRect();
+  
+  // Calculer la position relative de l'élément dans le conteneur
+  const itemTop = currentItem.offsetTop;
+  const timelineHeight = timeline.clientHeight;
+  
+  // Position cible : garder l'élément actuel à 30% du haut de la zone visible
+  const targetPosition = itemTop - (timelineHeight * 0.3);
+  
+  // Vérifier si l'élément est déjà dans la zone visible optimale
+  const itemRelativeTop = itemRect.top - timelineRect.top;
+  const isInOptimalZone = itemRelativeTop > (timelineHeight * 0.2) && 
+                          itemRelativeTop < (timelineHeight * 0.4);
+  
+  // Ne scroller que si nécessaire
+  if (!isInOptimalZone) {
+    timeline.scrollTo({
+      top: targetPosition,
+      behavior: 'smooth'
+    });
+  }
+}
 
 // Fonction debounce pour éviter trop d'appels
 function debounce(func, wait) {
@@ -164,7 +221,10 @@ function renderTimeline(forceRender = false) {
   const timeline = document.getElementById('timeline');
   if (!timeline) return;
   
-  timeline.innerHTML = '';
+  // Sauvegarder la position de scroll actuelle
+  const currentScroll = timeline.scrollTop;
+  
+  timeline.innerHTML = '<div class="timeline-line"></div>';
   
   if (planningData.length === 0) {
     const empty = document.createElement('div');
@@ -254,11 +314,6 @@ function renderTimeline(forceRender = false) {
     timeline.appendChild(timeLabel);
   }
   
-  // Ligne centrale de la timeline
-  const timelineLine = document.createElement('div');
-  timelineLine.className = 'timeline-line';
-  timeline.appendChild(timelineLine);
-  
   // Trouver l'élément actuel ou prochain
   let currentIndex = -1;
   let nextIndex = -1;
@@ -318,9 +373,9 @@ function renderTimeline(forceRender = false) {
       timelineContent.style.boxShadow = `0 0 15px ${eventConfig.color}`;
     } else {
       if (timelineItem.classList.contains('left')) {
-        timelineContent.style.borderRight = `3px solid ${eventConfig.color}`;
+        timelineContent.style.borderRightColor = eventConfig.color;
       } else {
-        timelineContent.style.borderLeft = `3px solid ${eventConfig.color}`;
+        timelineContent.style.borderLeftColor = eventConfig.color;
       }
     }
     
@@ -386,18 +441,47 @@ function renderTimeline(forceRender = false) {
   // Mettre à jour le statut actuel/à venir
   updateCurrentStatus(sortedData, currentIndex, nextIndex);
   
-  // Auto-scroll vers l'élément actuel
-  if (currentIndex !== -1) {
-    const currentItem = document.querySelector('.timeline-item.current');
-    if (currentItem) {
-      const parentHeight = timeline.clientHeight;
-      const itemTop = parseFloat(currentItem.style.top);
-      const scrollPos = (itemTop / 100) * timeline.scrollHeight - (parentHeight / 2);
+  // Restaurer la position de scroll ou auto-scroll vers l'élément actuel
+  if (forceRender && !isUserScrolling) {
+    setTimeout(autoScrollToCurrentItem, 100);
+  } else {
+    timeline.scrollTop = currentScroll;
+  }
+}
+
+// Fonction pour mettre à jour uniquement l'indicateur de temps
+function updateTimeIndicator() {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentSecond = now.getSeconds();
+  const currentTimeInMinutes = currentHour * 60 + currentMinute + (currentSecond / 60);
+  const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+  
+  const timeIndicator = document.getElementById('current-time-indicator');
+  const timeLabel = document.getElementById('current-time-label');
+  
+  if (timeIndicator && timeLabel) {
+    // Récupérer les bornes de temps depuis data attributes
+    const timeline = document.getElementById('timeline');
+    if (!timeline) return;
+    
+    const minTimeInMinutes = parseInt(timeline.dataset.minTime || 0);
+    const totalDurationInMinutes = parseInt(timeline.dataset.duration || (24 * 60));
+    
+    if (totalDurationInMinutes > 0) {
+      const positionPercentage = ((currentTimeInMinutes - minTimeInMinutes) / totalDurationInMinutes) * 100;
       
-      timeline.scrollTo({
-        top: scrollPos,
-        behavior: 'smooth'
-      });
+      // Ne mettre à jour que si l'indicateur est dans la plage visible
+      if (positionPercentage >= 0 && positionPercentage <= 100) {
+        // Utiliser CSS transition pour une animation fluide
+        timeIndicator.style.transition = 'top 1s linear';
+        timeLabel.style.transition = 'top 1s linear';
+        
+        timeIndicator.style.top = `${positionPercentage}%`;
+        timeLabel.style.top = `${positionPercentage}%`;
+        timeLabel.textContent = currentTimeStr;
+      }
     }
   }
 }
@@ -436,6 +520,71 @@ function updateTimeIndicator() {
         timeLabel.textContent = currentTimeStr;
       }
     }
+  }
+  
+  // Vérifier si on doit mettre à jour l'élément actuel
+  checkAndUpdateCurrentItem();
+}
+
+// Fonction pour vérifier et mettre à jour l'élément actuel
+function checkAndUpdateCurrentItem() {
+  const now = new Date();
+  const currentTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  
+  let hasChanged = false;
+  
+  // Parcourir tous les éléments pour mettre à jour les classes
+  document.querySelectorAll('.timeline-item').forEach((item, index) => {
+    const wasCurrentOrNext = item.classList.contains('current') || item.classList.contains('next');
+    
+    // Retirer les classes actuelles
+    item.classList.remove('current', 'next');
+    
+    // Réappliquer les bonnes classes selon l'heure
+    const itemTime = planningData[item.dataset.index]?.time;
+    if (itemTime && !planningData[item.dataset.index].checked) {
+      if (itemTime <= currentTimeStr) {
+        // C'est potentiellement l'élément actuel
+        let isCurrentItem = true;
+        
+        // Vérifier s'il n'y a pas d'élément non-coché plus récent
+        for (let i = index + 1; i < planningData.length; i++) {
+          if (planningData[i].time <= currentTimeStr && !planningData[i].checked) {
+            isCurrentItem = false;
+            break;
+          }
+        }
+        
+        if (isCurrentItem) {
+          item.classList.add('current');
+          if (!wasCurrentOrNext) hasChanged = true;
+        }
+      } else {
+        // Vérifier si c'est le prochain élément
+        let isNextItem = true;
+        
+        // Vérifier qu'il n'y a pas d'élément non-coché avant
+        for (let i = 0; i < index; i++) {
+          if (planningData[i].time > currentTimeStr && !planningData[i].checked) {
+            isNextItem = false;
+            break;
+          }
+        }
+        
+        if (isNextItem) {
+          // C'est le premier élément après l'heure actuelle
+          item.classList.add('next');
+          if (!wasCurrentOrNext) hasChanged = true;
+          return; // On a trouvé le prochain, on peut arrêter
+        }
+      }
+    }
+  });
+  
+  // Si l'élément actuel a changé, faire un auto-scroll
+  if (hasChanged) {
+    setTimeout(autoScrollToCurrentItem, 100);
+    updateCurrentStatus();
   }
 }
 
@@ -518,6 +667,7 @@ function loadStatus() {
     });
 }
 
+/*
 // Mise à jour de l'affichage du statut
 function updateStatusDisplay() {
   if (!statusData) return;
@@ -586,7 +736,23 @@ function updateStatusDisplay() {
     streamStartTime.setHours(0, 0, 0, 0);
   }
 }
+*/
 
+// Mise à jour de l'affichage du statut
+function updateStatusDisplay() {
+  if (!statusData) return;
+  
+  // Mettre à jour l'heure de début du stream si elle existe
+  if (statusData.stream_start_time) {
+    streamStartTime = new Date(statusData.stream_start_time);
+  } else if (!streamStartTime) {
+    // Si pas d'heure de début dans le fichier de statut, utiliser minuit du jour actuel
+    streamStartTime = new Date();
+    streamStartTime.setHours(0, 0, 0, 0);
+  }
+}
+
+/*
 // Animation des valeurs numériques
 function animateValue(obj, start, end, duration) {
   if (start === end) return;
@@ -613,6 +779,7 @@ function animateValue(obj, start, end, duration) {
   
   window.requestAnimationFrame(animate);
 }
+*/
 
 // Horloge du stream avec animation fluide
 function startClock() {
@@ -646,6 +813,11 @@ function startClock() {
       updateCurrentStatus();
     }
     
+    // Auto-scroll toutes les 30 secondes
+    if (parseInt(seconds) % 30 === 0) {
+      autoScrollToCurrentItem();
+    }
+    
     // Rendez complet de la timeline chaque minute pour être sûr
     if (seconds === '00') {
       renderTimeline(true);
@@ -654,6 +826,9 @@ function startClock() {
   
   updateClock();
   setInterval(updateClock, 1000);
+  
+  // Auto-scroll initial après un court délai
+  setTimeout(autoScrollToCurrentItem, 500);
 }
 
 // Déclencher un effet visuel (appelé via WebSocket)

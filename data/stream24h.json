@@ -1,25 +1,109 @@
 {
   "planning": [
-    { "time": "10:30", "label": "Ouverture + café avec la commu", "checked": false },
-    { "time": "11:15", "label": "Cuisine midi + talk léger", "checked": false },
-    { "time": "12:00", "label": "Jeu co-streamé #1", "checked": false },
-    { "time": "14:00", "label": "Moment #1 : Le chat décide !", "checked": false },
-    { "time": "15:00", "label": "Atelier Kintsugi en détente", "checked": false },
-    { "time": "16:00", "label": "Dev en live avec la commu", "checked": false },
-    { "time": "18:00", "label": "Yoga + Préparation dîner", "checked": false },
-    { "time": "19:00", "label": "Cuisine du soir + échanges", "checked": false },
-    { "time": "20:00", "label": "Emission musicale avec Flacko", "checked": false },
-    { "time": "21:00", "label": "Chat libre #2 + débats fun", "checked": false },
-    { "time": "22:00", "label": "Duo Akane + React Insta WTF", "checked": false },
-    { "time": "23:30", "label": "Zone Chill / Délire / Impro", "checked": false },
-    { "time": "01:00", "label": "Jeu co-streamé #2 (nuit)", "checked": false },
-    { "time": "02:30", "label": "Talk de nuit / confidences", "checked": false },
-    { "time": "03:00", "label": "Dev nocturne chill", "checked": false },
-    { "time": "04:00", "label": "React night session + vidéos du chat", "checked": false },
-    { "time": "05:00", "label": "Moment #2 : Activité choisie par les viewers", "checked": false },
-    { "time": "06:30", "label": "Sport du matin (Jour 2) + réveil collectif", "checked": false },
-    { "time": "07:15", "label": "Jeu viewers / streamer #3", "checked": false },
-    { "time": "08:30", "label": "Retex du stream + échanges sincères", "checked": false },
-    { "time": "09:30", "label": "Clôture + gratitude + best-of stream", "checked": false }
+    {
+      "time": "01:00",
+      "label": "Jeu co-streamé #2 (nuit)",
+      "checked": false
+    },
+    {
+      "time": "02:30",
+      "label": "Talk de nuit / confidences",
+      "checked": false
+    },
+    {
+      "time": "03:00",
+      "label": "Dev nocturne chill",
+      "checked": false
+    },
+    {
+      "time": "04:00",
+      "label": "React night session + vidéos du chat",
+      "checked": false
+    },
+    {
+      "time": "05:00",
+      "label": "Moment #2 : Activité choisie par les viewers",
+      "checked": false
+    },
+    {
+      "time": "06:30",
+      "label": "Sport du matin (Jour 2) + réveil collectif",
+      "checked": false
+    },
+    {
+      "time": "07:15",
+      "label": "Jeu viewers / streamer #3",
+      "checked": false
+    },
+    {
+      "time": "08:30",
+      "label": "Retex du stream + échanges sincères",
+      "checked": true
+    },
+    {
+      "time": "09:30",
+      "label": "Clôture + gratitude + best-of stream",
+      "checked": true
+    },
+    {
+      "time": "10:30",
+      "label": "Ouverture + café avec la commu",
+      "checked": true
+    },
+    {
+      "time": "11:15",
+      "label": "Cuisine midi + talk léger",
+      "checked": false
+    },
+    {
+      "time": "12:00",
+      "label": "Jeu co-streamé #1",
+      "checked": false
+    },
+    {
+      "time": "14:00",
+      "label": "Moment #1 : Le chat décide !",
+      "checked": false
+    },
+    {
+      "time": "15:00",
+      "label": "Atelier Kintsugi en détente",
+      "checked": false
+    },
+    {
+      "time": "16:00",
+      "label": "Dev en live avec la commu",
+      "checked": true
+    },
+    {
+      "time": "18:00",
+      "label": "Yoga + Préparation dîner",
+      "checked": true
+    },
+    {
+      "time": "19:00",
+      "label": "Cuisine du soir + échanges",
+      "checked": false
+    },
+    {
+      "time": "20:00",
+      "label": "Emission musicale avec Flacko",
+      "checked": false
+    },
+    {
+      "time": "21:00",
+      "label": "Chat libre #2 + débats fun",
+      "checked": false
+    },
+    {
+      "time": "22:00",
+      "label": "Duo Akane + React Insta WTF",
+      "checked": false
+    },
+    {
+      "time": "23:30",
+      "label": "Zone Chill / Délire / Impro",
+      "checked": false
+    }
   ]
 }
