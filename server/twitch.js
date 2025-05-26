@@ -2,6 +2,8 @@
 const axios = require('axios');
 const tmi = require('tmi.js');
 const io = require('socket.io-client');
+const fs = require('fs'); // AJOUT MANQUANT
+const path = require('path'); // AJOUT MANQUANT
 const logger = require('./logger');
 const dotenv = require('dotenv');
 
@@ -49,10 +51,8 @@ function initTwitchClient() {
 
   twitchClient.connect().catch(console.error);
 
-  twitchClient.on('message', (channel, tags, message, self) => {
-    // Handle chat messages
-    logger.log(`Message reçu sur ${channel}: ${message}`);
-  });
+  // APPEL DE LA FONCTION MANQUANTE
+  setupTwitchEvents();
 
   twitchClient.on('connected', (addr, port) => {
     logger.log(`Connecté à Twitch: ${addr}:${port}`);
@@ -67,6 +67,8 @@ function initTwitchClient() {
  * Configurer les événements Twitch
  */
 function setupTwitchEvents() {
+  if (!twitchClient) return;
+
   // Événement de connexion
   twitchClient.on('connected', (addr, port) => {
     logger.log(`Connecté à Twitch (${addr}:${port})`);
@@ -102,7 +104,7 @@ function setupTwitchEvents() {
     });
     
     // Mettre à jour les statistiques
-    updateSubscriptionStats(1);
+    updateSubscriptionStats(1, false);
   });
   
   // Événement de renouvellement d'abonnement
@@ -214,19 +216,28 @@ function initStreamlabsSocket() {
  * @returns {Promise<boolean>} Succès de l'initialisation
  */
 async function initialize() {
-  if (!config.enabled) {
-    logger.log('Intégration Twitch/Streamlabs désactivée');
+  try {
+    if (!config.enabled) {
+      logger.log('Intégration Twitch/Streamlabs désactivée');
+      return false;
+    }
+
+    if (config.twitch.channelName && config.twitch.oauthToken) {
+      initTwitchClient();
+    } else {
+      logger.log('Configuration Twitch incomplète - pas d\'initialisation du client');
+    }
+
+    if (config.streamlabs.socketToken) {
+      initStreamlabsSocket();
+    } else {
+      logger.log('Token Streamlabs manquant - pas d\'initialisation du socket');
+    }
+
+    return true;
+  } catch (error) {
+    logger.error(`Erreur d'initialisation Twitch: ${error.message}`);
     return false;
-  }
-
-  if (config.twitch.channelName && config.twitch.oauthToken) {
-    initTwitchClient();
-  } else {
-    logger.error('Configuration Twitch incomplète');
-  }
-
-  if (config.streamlabs.socketToken) {
-    initStreamlabsSocket();
   }
 }
 
@@ -263,7 +274,6 @@ function handleStreamlabsDonation(eventData) {
         GBP: 1.15,
         CAD: 0.65,
         AUD: 0.60,
-        // Ajouter d'autres devises selon les besoins
       };
       
       const rate = conversionRates[donation.currency] || 1;
@@ -322,7 +332,7 @@ function handleStreamlabsSubscription(eventData) {
       
       // Ne mettre à jour les stats que pour les nouveaux abonnements
       if (!sub.months || sub.months <= 1) {
-        updateSubscriptionStats(1);
+        updateSubscriptionStats(1, false);
       }
     });
   } catch (error) {
@@ -362,10 +372,14 @@ async function updateDonationStats(amount) {
     fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
     
     // Notifier les clients connectés via API
-    const response = await axios.post('http://localhost:3000/api/status', status);
-    logger.log(`Mise à jour des statistiques de donations: +${amount}€ (Total: ${status.donation_total}€)`);
-    
-    return response.data;
+    try {
+      const response = await axios.post('http://localhost:3000/api/status', status);
+      logger.log(`Mise à jour des statistiques de donations: +${amount}€ (Total: ${status.donation_total}€)`);
+      return response.data;
+    } catch (apiError) {
+      logger.error(`Erreur API de mise à jour des donations: ${apiError.message}`);
+      return null;
+    }
   } catch (error) {
     logger.error(`Erreur de mise à jour des statistiques de donations: ${error.message}`);
     return null;
@@ -375,8 +389,9 @@ async function updateDonationStats(amount) {
 /**
  * Mettre à jour les statistiques d'abonnements
  * @param {number} count Nombre d'abonnements
+ * @param {boolean} fromApi Si l'appel vient de l'API (évite la boucle)
  */
-async function updateSubscriptionStats(count) {
+async function updateSubscriptionStats(count, fromApi = false) {
   try {
     // Récupérer les statistiques actuelles
     const statusPath = path.join(__dirname, '..', 'data', 'status.json');
@@ -403,11 +418,20 @@ async function updateSubscriptionStats(count) {
     // Sauvegarder les statistiques
     fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
     
-    // Notifier les clients connectés via API
-    const response = await axios.post('http://localhost:3000/api/status', status);
-    logger.log(`Mise à jour des statistiques d'abonnements: +${count} (Total: ${status.subs_total})`);
-    
-    return response.data;
+    // Notifier les clients connectés via API (uniquement si pas appelé depuis l'API)
+    if (!fromApi) {
+      try {
+        const response = await axios.post('http://localhost:3000/api/status', status);
+        logger.log(`Mise à jour des statistiques d'abonnements: +${count} (Total: ${status.subs_total})`);
+        return response.data;
+      } catch (apiError) {
+        logger.error(`Erreur API de mise à jour des abonnements: ${apiError.message}`);
+        return null;
+      }
+    } else {
+      logger.log(`Mise à jour des statistiques d'abonnements: +${count} (Total: ${status.subs_total})`);
+      return status;
+    }
   } catch (error) {
     logger.error(`Erreur de mise à jour des statistiques d'abonnements: ${error.message}`);
     return null;
@@ -562,45 +586,45 @@ async function getStreamInfo() {
  * @param {boolean} enabled État d'activation
  */
 function setEnabled(enabled) {
-    config.enabled = !!enabled;
-    
-    if (config.enabled) {
-      initialize();
-    } else {
-      // Déconnecter le client Twitch
-      if (twitchClient) {
-        twitchClient.disconnect();
-        twitchClient = null;
-      }
-      
-      // Déconnecter le socket Streamlabs
-      if (streamlabsSocket) {
-        streamlabsSocket.disconnect();
-        streamlabsSocket = null;
-      }
+  config.enabled = !!enabled;
+  
+  if (config.enabled) {
+    initialize();
+  } else {
+    // Déconnecter le client Twitch
+    if (twitchClient) {
+      twitchClient.disconnect();
+      twitchClient = null;
     }
     
-    logger.log(`Intégration Twitch/Streamlabs ${config.enabled ? 'activée' : 'désactivée'}`);
-    return config.enabled;
+    // Déconnecter le socket Streamlabs
+    if (streamlabsSocket) {
+      streamlabsSocket.disconnect();
+      streamlabsSocket = null;
+    }
   }
   
-  /**
-   * Obtenir la configuration actuelle
-   * @returns {Object} Configuration
-   */
-  function getConfig() {
-    return { ...config };
-  }
-  
-  // Exposer les fonctions
-  module.exports = {
-    initialize,
-    sendTwitchMessage,
-    triggerStreamlabsEffect,
-    on,
-    getStreamInfo,
-    setEnabled,
-    getConfig,
-    updateDonationStats,
-    updateSubscriptionStats
-  };
+  logger.log(`Intégration Twitch/Streamlabs ${config.enabled ? 'activée' : 'désactivée'}`);
+  return config.enabled;
+}
+
+/**
+ * Obtenir la configuration actuelle
+ * @returns {Object} Configuration
+ */
+function getConfig() {
+  return { ...config };
+}
+
+// Exposer les fonctions
+module.exports = {
+  initialize,
+  sendTwitchMessage,
+  triggerStreamlabsEffect,
+  on,
+  getStreamInfo,
+  setEnabled,
+  getConfig,
+  updateDonationStats,
+  updateSubscriptionStats
+};

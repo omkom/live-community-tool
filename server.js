@@ -26,24 +26,42 @@ const STATUS_DATA_PATH = path.join(DATA_DIR, 'status.json');
 // Créer le dossier data s'il n'existe pas
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
+  logger.log('Dossier data créé');
 }
 
 // Initialiser les fichiers s'ils n'existent pas
-if (!fs.existsSync(STREAM_DATA_PATH)) {
-  fs.writeFileSync(STREAM_DATA_PATH, JSON.stringify({
-    planning: []
-  }, null, 2));
+function initializeDataFiles() {
+  if (!fs.existsSync(STREAM_DATA_PATH)) {
+    const defaultPlanning = {
+      planning: [
+        { time: "10:30", label: "Ouverture + café avec la commu", checked: false },
+        { time: "12:00", label: "Jeu co-streamé #1", checked: false },
+        { time: "14:00", label: "Moment #1 : Le chat décide !", checked: false },
+        { time: "16:00", label: "Dev en live avec la commu", checked: false },
+        { time: "18:00", label: "Cuisine du soir + échanges", checked: false },
+        { time: "20:00", label: "Stream musical", checked: false }
+      ]
+    };
+    fs.writeFileSync(STREAM_DATA_PATH, JSON.stringify(defaultPlanning, null, 2));
+    logger.log('Fichier de planning initialisé');
+  }
+
+  if (!fs.existsSync(STATUS_DATA_PATH)) {
+    const defaultStatus = {
+      donation_total: 0,
+      donation_goal: 1000,
+      subs_total: 0,
+      subs_goal: 50,
+      stream_start_time: null,
+      last_update: new Date().toISOString()
+    };
+    fs.writeFileSync(STATUS_DATA_PATH, JSON.stringify(defaultStatus, null, 2));
+    logger.log('Fichier de statut initialisé');
+  }
 }
 
-if (!fs.existsSync(STATUS_DATA_PATH)) {
-  fs.writeFileSync(STATUS_DATA_PATH, JSON.stringify({
-    donation_total: 0,
-    donation_goal: 1000,
-    subs_total: 0,
-    subs_goal: 50,
-    last_update: new Date().toISOString()
-  }, null, 2));
-}
+// Initialiser les fichiers de données
+initializeDataFiles();
 
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
@@ -54,11 +72,10 @@ let connections = new Map();
 
 // Gestion des WebSockets
 wss.on('connection', (ws, req) => {
-  const id = Date.now();
+  const id = Date.now() + Math.random();
   const clientIp = req.socket.remoteAddress;
-  const clientType = req.url.includes('type=') 
-    ? new URLSearchParams(req.url.slice(req.url.indexOf('?'))).get('type') 
-    : 'unknown';
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const clientType = url.searchParams.get('type') || 'unknown';
   
   // Enregistrement du client
   connections.set(id, { ws, type: clientType });
@@ -71,12 +88,19 @@ wss.on('connection', (ws, req) => {
     connections.delete(id);
     logger.log(`Déconnexion WebSocket: ${clientType} (${clientIp})`);
   });
+  
+  ws.on('error', (error) => {
+    logger.error(`Erreur WebSocket ${clientType}: ${error.message}`);
+    connections.delete(id);
+  });
 });
 
 // Envoi des données initiales à un client
 function sendInitialData(ws) {
   try {
-    ws.send(JSON.stringify({ type: 'init', status: 'connected' }));
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'init', status: 'connected' }));
+    }
   } catch (err) {
     logger.error(`Erreur d'envoi des données initiales: ${err.message}`);
   }
@@ -87,21 +111,29 @@ function broadcast(data, filterType = null) {
   const message = typeof data === 'string' ? data : JSON.stringify(data);
   let count = 0;
   
-  connections.forEach((client) => {
+  connections.forEach((client, id) => {
     if (!filterType || client.type === filterType) {
       try {
-        client.ws.send(message);
-        count++;
+        if (client.ws.readyState === WebSocket.OPEN) {
+          client.ws.send(message);
+          count++;
+        } else {
+          // Nettoyer les connexions fermées
+          connections.delete(id);
+        }
       } catch (err) {
         logger.error(`Erreur de diffusion: ${err.message}`);
+        connections.delete(id);
       }
     }
   });
   
-  logger.log(`Message diffusé à ${count} clients: ${typeof data === 'string' ? data.substring(0, 30) : JSON.stringify(data).substring(0, 30)}...`);
+  if (count > 0) {
+    const preview = typeof data === 'string' ? data.substring(0, 50) : JSON.stringify(data).substring(0, 50);
+    logger.log(`Message diffusé à ${count} clients: ${preview}...`);
+  }
 }
 
-// Create a new section in server.js before the routes section:
 // ======= TWITCH INTEGRATION =======
 
 // Initialize the Twitch Monitor
@@ -123,35 +155,15 @@ twitchMonitor.on('subscriptions:synced', (data) => {
 });
 
 // Start monitoring if Twitch integration is enabled
-if (twitch.getConfig().enabled) {
-  twitchMonitor.start();
-}
-
-// Add subscription sync handling to the existing Twitch events
-twitch.on('subscription', async (data) => {
-  // This code should be added to the existing subscription handler in server.js
-  // Update the subscription count
-  try {
-    const statusPath = STATUS_DATA_PATH;
-    let status = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
-    
-    // Increment subscription count
-    status.subs_total = (parseInt(status.subs_total) || 0) + 1;
-    status.last_update = new Date().toISOString();
-    
-    // Save updated status
-    fs.writeFileSync(statusPath, JSON.stringify(status, null, 2));
-    
-    // Notify clients
-    broadcast({ type: 'update', target: 'status' });
-    
-    // Log the event
-    logger.log(`New subscription from ${data.username}, updated total: ${status.subs_total}`);
-    
-    // Additional event handling logic can remain the same...
-  } catch (err) {
-    logger.error(`Error updating subscription count: ${err.message}`);
+twitch.initialize().then(success => {
+  if (success && twitch.getConfig().enabled) {
+    twitchMonitor.start();
+    logger.log('Twitch monitor démarré');
+  } else {
+    logger.log('Intégration Twitch non initialisée ou désactivée');
   }
+}).catch(error => {
+  logger.error(`Erreur d'initialisation Twitch: ${error.message}`);
 });
 
 // ======= ROUTES API =======
@@ -298,41 +310,12 @@ app.get('/api/logs', (req, res) => {
     const logs = logger.getLogs();
     res.json({ logs });
   } catch (err) {
+    logger.error(`Erreur récupération logs: ${err.message}`);
     res.status(500).json({ error: 'Erreur lors de la récupération des logs' });
   }
 });
 
-// Routes Twitch
-app.get('/api/twitch/status', (req, res) => {
-  res.json({
-    enabled: twitch.getConfig().enabled,
-    connected: twitch.getConfig().enabled && twitch.getConfig().twitch.channelName
-  });
-});
-
-app.post('/api/twitch/config', (req, res) => {
-  try {
-    const { enabled, ...config } = req.body;
-    
-    if (typeof enabled === 'boolean') {
-      twitch.setEnabled(enabled);
-    }
-    
-    if (Object.keys(config).length > 0) {
-      twitch.initialize(config);
-    }
-    
-    res.json({
-      success: true,
-      config: twitch.getConfig()
-    });
-  } catch (err) {
-    logger.error(`Erreur de configuration Twitch: ${err.message}`);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Configurer les événements Twitch
+// Configuration des événements Twitch
 twitch.on('donation', (data) => {
   // Déclencher un effet et un message
   broadcast({ type: 'effect', value: 'tada' });
@@ -343,35 +326,65 @@ twitch.on('donation', (data) => {
 });
 
 twitch.on('subscription', (data) => {
+  // Déclencher effet et message
   broadcast({ type: 'effect', value: 'pulse' });
   broadcast({ type: 'message', value: `${data.username} s'est abonné${data.isResub ? ' pour ' + data.months + ' mois' : ''}!` });
+  
+  // Mettre à jour les statistiques
+  try {
+    const status = JSON.parse(fs.readFileSync(STATUS_DATA_PATH, 'utf8'));
+    status.subs_total = (parseInt(status.subs_total) || 0) + 1;
+    status.last_update = new Date().toISOString();
+    
+    fs.writeFileSync(STATUS_DATA_PATH, JSON.stringify(status, null, 2));
+    broadcast({ type: 'update', target: 'status' });
+    
+    logger.log(`Nouveau abonnement, total: ${status.subs_total}`);
+  } catch (err) {
+    logger.error(`Erreur mise à jour abonnements: ${err.message}`);
+  }
   
   logger.activity('twitch_subscription', data);
 });
 
 twitch.on('follow', (data) => {
   broadcast({ type: 'message', value: `${data.username} suit maintenant la chaîne!` });
-  
   logger.activity('twitch_follow', data);
 });
 
 twitch.on('cheer', (data) => {
   broadcast({ type: 'effect', value: 'bounce' });
   broadcast({ type: 'message', value: `${data.username} a donné ${data.bits} bits!` });
-  
   logger.activity('twitch_cheer', data);
 });
 
-// Initialiser l'intégration Twitch
-twitch.initialize().then(success => {
-  if (success) {
-    logger.log('Intégration Twitch initialisée');
-  } else {
-    logger.log('Intégration Twitch non initialisée ou désactivée');
-  }
+// Route de test pour vérifier que le serveur fonctionne
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    connections: connections.size,
+    uptime: process.uptime()
+  });
+});
+
+// Gestion des erreurs non capturées
+process.on('uncaughtException', (error) => {
+  logger.error(`Erreur non capturée: ${error.message}`);
+  console.error('Stack trace:', error.stack);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error(`Promesse rejetée non gérée: ${reason}`);
+  console.error('Promise:', promise);
 });
 
 // Démarrage du serveur
 server.listen(PORT, () => {
-  logger.log(`✨ Serveur démarré sur http://localhost:${PORT}`);
+  logger.log(`✨ Serveur Stream 24h démarré`);
+  logger.log(`🌐 Interface publique: http://localhost:${PORT}`);
+  logger.log(`⚙️  Interface admin: http://localhost:${PORT}/admin.html`);
+  logger.log(`📺 Overlay OBS: http://localhost:${PORT}/overlay/`);
+  logger.log(`📊 Status OBS: http://localhost:${PORT}/status.html`);
+  logger.log(`💬 WebSocket actif avec ${connections.size} connexions`);
 });
