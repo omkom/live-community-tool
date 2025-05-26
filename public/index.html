@@ -6,10 +6,13 @@
   <title>Stream 24h - Planning</title>
   <link rel="stylesheet" href="css/index.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="container">
-    <!-- Header fixe -->
+    <!-- Header compact -->
     <div class="header">
       <div class="logo">
         <i class="fas fa-broadcast-tower"></i>
@@ -23,33 +26,50 @@
       </div>
     </div>
     
-    <!-- Section status fixe -->
-    <div class="status-section" id="status-block">
-      <!-- Le contenu sera généré dynamiquement -->
+    <!-- Section status sur une ligne -->
+    <div class="status-section">
+      <div class="status-line" id="status-line">
+        <div class="status-current">
+          <i class="fas fa-pause"></i>
+          <span>Chargement...</span>
+        </div>
+        <div class="status-divider"></div>
+        <div class="status-next">
+          <span>Préparation...</span>
+          <i class="fas fa-clock"></i>
+        </div>
+      </div>
     </div>
     
     <!-- Timeline scrollable -->
     <div class="timeline" id="timeline">
       <div class="timeline-line"></div>
-      <!-- Le contenu sera généré dynamiquement -->
+      <div class="timeline-empty">
+        <i class="fas fa-spinner fa-spin"></i><br>
+        Chargement du planning...
+      </div>
     </div>
   </div>
   
-  <!-- Script principal -->
+  <!-- Scripts optimisés dans l'ordre de dépendance -->
+  <script src="js/timeline-manager.js"></script>
+  <script src="js/stream-clock.js"></script>
+  <script src="js/websocket-client.js"></script>
   <script src="js/index.js"></script>
   
-  <!-- Script d'optimisation du scroll -->
+  <!-- Script d'optimisation mobile -->
   <script>
-    // S'assurer que la page ne peut pas être scrollée sur mobile
-    document.addEventListener('touchmove', function(e) {
-      if (!e.target.closest('.timeline')) {
+    // Empêcher le scroll sur le body (géré par le container)
+    document.addEventListener('touchmove', (e) => {
+      // Permettre le scroll seulement dans le container et la timeline
+      if (!e.target.closest('.container') && !e.target.closest('.timeline')) {
         e.preventDefault();
       }
     }, { passive: false });
     
     // Empêcher le zoom sur double tap
     let lastTouchEnd = 0;
-    document.addEventListener('touchend', function(e) {
+    document.addEventListener('touchend', (e) => {
       const now = Date.now();
       if (now - lastTouchEnd <= 300) {
         e.preventDefault();
@@ -65,7 +85,9 @@
     
     setViewportHeight();
     window.addEventListener('resize', setViewportHeight);
-    window.addEventListener('orientationchange', setViewportHeight);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(setViewportHeight, 100);
+    });
   </script>
 </body>
 </html>
