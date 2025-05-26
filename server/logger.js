@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const MAX_LOGS = 1000; // Nombre maximum de logs à conserver
+const MAX_LOGS = 100; // Nombre maximum de logs à conserver
 const LOG_FILE = path.join(__dirname, '..', 'data', 'logs.json');
 
 // Initialisation

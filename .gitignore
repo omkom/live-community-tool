@@ -4,4 +4,4 @@
 .env
 .DS_Store
 
-*logs.json
+*/data/logs.json
