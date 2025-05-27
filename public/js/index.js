@@ -1,58 +1,51 @@
-// public/js/index.js - Script principal optimisé
+// public/js/index.js - Version simplifiée avec centrage forcé permanent
 class StreamApp {
   constructor() {
     this.timelineManager = new TimelineManager();
     this.streamClock = new StreamClock();
     this.wsClient = new WebSocketClient();
-    this.updateInterval = null;
     
-    // Configuration
-    this.UPDATE_INTERVAL = 15000; // Mise à jour périodique toutes les 15 secondes
-    this.TIMELINE_UPDATE_INTERVAL = 30000; // Mise à jour timeline toutes les 30 secondes
+    // Configuration simplifiée
+    this.UPDATE_INTERVAL = 15000; // 15 secondes
+    this.TIMELINE_UPDATE_INTERVAL = 30000; // 30 secondes
     
     this.init();
   }
   
   async init() {
     try {
-      // Initialiser les composants
       await this.initializeComponents();
-      
-      // Configurer les gestionnaires d'événements
       this.setupEventHandlers();
-      
-      // Démarrer les services
       this.startServices();
-      
-      // Charger les données initiales
       await this.loadInitialData();
       
-      console.log('Application Stream 24h initialisée avec succès');
+      console.log('✅ Application Stream 24h initialisée');
     } catch (error) {
-      console.error('Erreur d\'initialisation de l\'application:', error);
+      console.error('❌ Erreur d\'initialisation:', error);
       this.showError('Erreur d\'initialisation. Rechargez la page.');
     }
   }
   
   async initializeComponents() {
-    // Initialiser l'horloge du stream
     await this.streamClock.initialize();
-    
-    // Gérer le redimensionnement
     this.setupResponsiveHandlers();
-    
-    // Empêcher le zoom et le scroll indésirable sur mobile
     this.setupMobileOptimizations();
+    
+    // Debug en développement
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      window.streamDebug = {
+        centerNow: () => this.timelineManager.centerIndicatorNow(),
+        forceRender: () => this.timelineManager.forceRender(),
+        getCurrentItem: () => this.timelineManager.getCurrentItem()
+      };
+      console.log('🔧 Debug: window.streamDebug disponible');
+    }
   }
   
   setupEventHandlers() {
-    // Gestionnaires WebSocket
+    // WebSocket
     this.wsClient.on('connected', () => {
-      console.log('WebSocket connecté');
-    });
-    
-    this.wsClient.on('disconnected', () => {
-      console.log('WebSocket déconnecté');
+      console.log('🔌 WebSocket connecté');
     });
     
     this.wsClient.on('update', (data) => {
@@ -67,18 +60,19 @@ class StreamApp {
       this.handleMessage(data);
     });
     
-    // Gestionnaire de visibilité de la page
+    // Visibilité de la page
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        this.pauseUpdates();
-      } else {
-        this.resumeUpdates();
+      if (!document.hidden) {
+        this.refreshData();
+        setTimeout(() => {
+          this.timelineManager.centerIndicatorNow();
+        }, 500);
       }
     });
     
-    // Gestionnaire d'erreurs globales
+    // Gestionnaires d'erreurs
     window.addEventListener('error', (event) => {
-      console.error('Erreur JavaScript:', event.error);
+      console.error('Erreur JS:', event.error);
     });
     
     window.addEventListener('unhandledrejection', (event) => {
@@ -88,10 +82,14 @@ class StreamApp {
   
   setupResponsiveHandlers() {
     let resizeTimeout;
+    
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
         this.timelineManager.forceRender();
+        setTimeout(() => {
+          this.timelineManager.centerIndicatorNow();
+        }, 100);
       }, 250);
     });
     
@@ -99,6 +97,9 @@ class StreamApp {
       setTimeout(() => {
         this.setViewportHeight();
         this.timelineManager.forceRender();
+        setTimeout(() => {
+          this.timelineManager.centerIndicatorNow();
+        }, 200);
       }, 100);
     });
     
@@ -130,15 +131,12 @@ class StreamApp {
   }
   
   startServices() {
-    // Démarrer la connexion WebSocket
     this.wsClient.connect();
-    
-    // Démarrer les mises à jour périodiques
     this.startPeriodicUpdates();
   }
   
   startPeriodicUpdates() {
-    // Mise à jour de l'indicateur de temps et du statut toutes les secondes
+    // Mise à jour de l'indicateur de temps toutes les secondes
     this.timeUpdateInterval = setInterval(() => {
       this.timelineManager.updateTimeIndicator();
     }, 1000);
@@ -148,47 +146,43 @@ class StreamApp {
       this.timelineManager.forceRender();
     }, this.TIMELINE_UPDATE_INTERVAL);
     
-    // Rechargement des données toutes les 15 secondes (si pas de WebSocket)
+    // Rechargement des données si pas de WebSocket
     this.dataUpdateInterval = setInterval(() => {
       if (!this.wsClient.isReady()) {
         this.refreshData();
       }
     }, this.UPDATE_INTERVAL);
+    
+    // Centrage forcé toutes les 10 secondes pour garantir la position
+    this.centerInterval = setInterval(() => {
+      this.timelineManager.centerIndicatorNow();
+    }, 10000);
   }
   
   pauseUpdates() {
-    if (this.timeUpdateInterval) {
-      clearInterval(this.timeUpdateInterval);
-      this.timeUpdateInterval = null;
-    }
-    if (this.timelineUpdateInterval) {
-      clearInterval(this.timelineUpdateInterval);
-      this.timelineUpdateInterval = null;
-    }
-    if (this.dataUpdateInterval) {
-      clearInterval(this.dataUpdateInterval);
-      this.dataUpdateInterval = null;
-    }
+    clearInterval(this.timeUpdateInterval);
+    clearInterval(this.timelineUpdateInterval);
+    clearInterval(this.dataUpdateInterval);
+    clearInterval(this.centerInterval);
   }
   
   resumeUpdates() {
-    if (!this.timeUpdateInterval) {
-      this.startPeriodicUpdates();
-    }
-    // Forcer une mise à jour immédiate
+    this.startPeriodicUpdates();
     this.refreshData();
   }
   
   async loadInitialData() {
     try {
-      // Charger le planning
       await this.timelineManager.loadPlanning();
-      
-      // Charger le statut
       await this.loadStatus();
       
+      // Centrage initial après chargement
+      setTimeout(() => {
+        this.timelineManager.centerIndicatorNow();
+      }, 1000);
+      
     } catch (error) {
-      console.error('Erreur de chargement des données initiales:', error);
+      console.error('Erreur chargement données:', error);
       throw error;
     }
   }
@@ -196,36 +190,28 @@ class StreamApp {
   async loadStatus() {
     try {
       const response = await fetch('/api/status');
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
       
       const statusData = await response.json();
-      
-      // Mettre à jour l'horloge du stream
       this.streamClock.updateStatus(statusData);
       
       return statusData;
     } catch (error) {
-      console.error('Erreur lors du chargement du statut:', error);
+      console.error('Erreur chargement statut:', error);
       throw error;
     }
   }
   
   async refreshData() {
     try {
-      // Recharger le planning
       await this.timelineManager.loadPlanning();
-      
-      // Recharger le statut
       await this.loadStatus();
-      
     } catch (error) {
-      console.error('Erreur de rafraîchissement des données:', error);
+      console.error('Erreur rafraîchissement:', error);
     }
   }
   
-  // Gestionnaires d'événements WebSocket
+  // Gestionnaires WebSocket
   async handleUpdate(data) {
     try {
       if (data.target === 'planning') {
@@ -234,7 +220,7 @@ class StreamApp {
         await this.loadStatus();
       }
     } catch (error) {
-      console.error('Erreur lors de la mise à jour:', error);
+      console.error('Erreur mise à jour:', error);
     }
   }
   
@@ -271,7 +257,6 @@ class StreamApp {
     effectBox.appendChild(content);
     document.body.appendChild(effectBox);
     
-    // Animation de sortie
     setTimeout(() => {
       effectBox.style.opacity = '0';
       effectBox.style.transform = 'translate(-50%, -50%) scale(0.8)';
@@ -323,7 +308,7 @@ class StreamApp {
     return this.wsClient.isReady();
   }
   
-  // Nettoyage lors de la fermeture
+  // Nettoyage
   destroy() {
     this.pauseUpdates();
     this.wsClient.disconnect();
@@ -331,14 +316,13 @@ class StreamApp {
   }
 }
 
-// Point d'entrée de l'application
+// Point d'entrée simplifié
 let streamApp = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   streamApp = new StreamApp();
 });
 
-// Nettoyage lors de la fermeture de la page
 window.addEventListener('beforeunload', () => {
   if (streamApp) {
     streamApp.destroy();

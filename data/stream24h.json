@@ -38,17 +38,17 @@
     {
       "time": "08:30",
       "label": "Retex du stream + échanges sincères",
-      "checked": true
+      "checked": false
     },
     {
       "time": "09:30",
       "label": "Clôture + gratitude + best-of stream",
-      "checked": true
+      "checked": false
     },
     {
       "time": "10:30",
       "label": "Ouverture + café avec la commu",
-      "checked": true
+      "checked": false
     },
     {
       "time": "11:15",
@@ -73,12 +73,12 @@
     {
       "time": "16:00",
       "label": "Dev en live avec la commu",
-      "checked": true
+      "checked": false
     },
     {
       "time": "18:00",
       "label": "Yoga + Préparation dîner",
-      "checked": true
+      "checked": false
     },
     {
       "time": "19:00",
