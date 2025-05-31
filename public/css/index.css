@@ -53,7 +53,7 @@ body {
   width: 100%;
   max-width: 550px;
   height: 200vh; /* CORRIGÉ: Hauteur viewport complète */
-  Xmax-height: 1080px;
+  max-height: 1080px;
   margin: 0 auto;
   padding: 0;
   display: flex;
@@ -66,8 +66,8 @@ body {
 
 /* Header fixe CORRIGÉ */
 .header {
-  position: relative; /* CORRIGÉ: Plus de sticky */
-  width: 100%;
+  position: absolute; /* CORRIGÉ: Plus de sticky */
+  width: 550px;
   text-align: center;
   padding: 12px 20px;
   background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
@@ -134,8 +134,9 @@ body {
 
 /* Section status CORRIGÉE */
 .status-section {
-  position: relative; /* CORRIGÉ: Plus de sticky */
-  width: 100%;
+  position: absolute; /* CORRIGÉ: Plus de sticky */
+  width: 550px;
+  top:145px; 
   background: var(--darker);
   padding: 0 20px 12px;
   z-index: 999;
@@ -191,19 +192,26 @@ body {
 
 /* Timeline CORRIGÉE - Principal changement ici */
 .timeline {
-  flex: 1; /* CORRIGÉ: Prendre tout l'espace restant */
+  flex: 1; /* Corrigé: "fXlex" → "flex" */
   position: relative;
-  overflow-y: auto; /* CORRIGÉ: Scroll vertical activé */
+  
+  overflow-y: auto; /* Autorise le scroll vertical */
   overflow-x: hidden;
+  
+  height: 6000px; /* Utilise 100% si le parent a une hauteur définie */
+  /* max-height: 200vh; Optionnel : pour éviter qu’elle dépasse la vue */
+
   padding: 30px 60px 100px;
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
-  /* RETIRÉ: min-height fixe qui causait le problème */
-  min-height: 1800px;
-  /* Optimisations pour le scroll */
+  scroll-behavior: smooth; /* ← utilise 'smooth' pour une vraie animation */
+
+  /* Supprimé: min-height / height en pixels fixes */
+  min-height: 1800px; /* ← en trop si le contenu est déjà grand */
+  /* height: 2800px !important; ← danger si ça empêche le scroll */
+
   overscroll-behavior: contain;
   will-change: scroll-position;
-  transform: translateZ(0); /* Force la couche de composition */
+  transform: translateZ(0);
 }
 
 /* Ligne centrale */
@@ -272,7 +280,7 @@ body {
 
 .current-time-label {
   position: absolute;
-  right: -5px;
+  right: 10px;
   background: var(--now-playing);
   color: white;
   padding: 4px 8px;

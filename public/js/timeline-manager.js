@@ -1,9 +1,17 @@
-// public/js/timeline-manager.js - Version simplifiée avec centrage forcé
+// public/js/timeline-manager.js - Version corrigée avec centrage fiable
 class TimelineManager {
   constructor() {
     this.planningData = [];
     this.lastRenderTime = 0;
     this.RENDER_THROTTLE_MS = 1000;
+    this.isScrolling = false;
+    this.scrollTimeout = null;
+    this.centeringTimeout = null;
+    
+    // Configuration du centrage
+    this.AUTO_CENTER_ENABLED = true;
+    this.CENTER_INTERVAL = 8000; // Centrage automatique toutes les 8 secondes
+    this.SCROLL_OFFSET_THRESHOLD = 100; // Seuil pour déclencher le centrage
     
     // Types d'événements et leurs couleurs
     this.EVENT_TYPES = {
@@ -21,7 +29,12 @@ class TimelineManager {
       'clôture': { color: '#a1c4fd', icon: 'fas fa-flag-checkered' },
       'default': { color: '#667eea', icon: 'fas fa-calendar-check' }
     };
+    
+    // Démarrer le centrage automatique
+    this.startAutoCentering();
   }
+  
+  // === MÉTHODES UTILITAIRES ===
   
   detectEventType(label) {
     const labelLower = label.toLowerCase();
@@ -47,7 +60,7 @@ class TimelineManager {
     const currentMinute = now.getMinutes();
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
     
-    // Si on est après minuit et avant 10h, on est au jour 2
+    // Si on est après minuit et avant 10h, on est au jour 2 du stream
     return currentHour < 10 ? currentTimeInMinutes + (24 * 60) : currentTimeInMinutes;
   }
   
@@ -57,6 +70,185 @@ class TimelineManager {
     const displayMinute = streamMinutes % 60;
     return `${displayHour.toString().padStart(2, '0')}:${displayMinute.toString().padStart(2, '0')}`;
   }
+  
+  // === GESTION DU CENTRAGE AUTOMATIQUE ===
+  
+  startAutoCentering() {
+    // Centrage périodique automatique
+    this.autoCenterInterval = setInterval(() => {
+      if (this.AUTO_CENTER_ENABLED && !this.isScrolling) {
+        this.centerIndicatorNow(false); // Centrage discret
+      }
+    }, this.CENTER_INTERVAL);
+    
+    // Écouter les événements de scroll pour détecter l'interaction utilisateur
+    this.setupScrollDetection();
+  }
+  
+  setupScrollDetection() {
+    const timeline = document.getElementById('timeline');
+    if (!timeline) return;
+    
+    timeline.addEventListener('scroll', () => {
+      this.isScrolling = true;
+      
+      // Réinitialiser le timeout de scroll
+      if (this.scrollTimeout) {
+        clearTimeout(this.scrollTimeout);
+      }
+      
+      // Marquer la fin du scroll après 2 secondes d'inactivité
+      this.scrollTimeout = setTimeout(() => {
+        this.isScrolling = false;
+      }, 2000);
+    }, { passive: true });
+  }
+  
+  stopAutoCentering() {
+    if (this.autoCenterInterval) {
+      clearInterval(this.autoCenterInterval);
+      this.autoCenterInterval = null;
+    }
+  }
+  
+  // === CENTRAGE PRINCIPAL (VERSION SIMPLIFIÉE ET FIABLE) ===
+  
+  centerIndicatorNow(smooth = true) {
+    const timeline = document.getElementById('timeline');
+    const indicator = document.getElementById('current-time-indicator');
+    
+    if (!timeline || !indicator) {
+      console.warn('⚠️ Éléments timeline ou indicateur manquants');
+      return false;
+    }
+    
+    // Attendre que le layout soit stable
+    requestAnimationFrame(() => {
+      try {
+        // Obtenir les dimensions actuelles
+        const timelineRect = timeline.getBoundingClientRect();
+        const indicatorRect = indicator.getBoundingClientRect();
+        
+        // Calculer la position absolue de l'indicateur dans le contenu scrollable
+        const indicatorOffsetTop = indicator.offsetTop;
+        //console.log('📏 indicator:', indicator.style.top);
+        
+        // Position cible : centrer l'indicateur dans la vue
+        const timelineCenter = timelineRect.height / 2;
+        const targetScrollTop = indicatorOffsetTop - timelineCenter;
+
+        console.log('# timelineCenter:', timelineCenter);
+        console.log('# indicatorOffsetTop:', indicatorOffsetTop);
+        console.log('# targetScrollTop:', targetScrollTop);
+        
+        // Limites de scroll
+        const maxScrollTop = Math.max(0, timeline.scrollHeight - timeline.clientHeight);
+        const finalScrollTop = Math.max(0, Math.min(targetScrollTop, maxScrollTop));
+        
+        // Vérifier si un scroll est nécessaire
+        const currentScrollTop = timeline.scrollTop;
+        console.log('#### timeline:', timeline) ;
+        console.log('📜 Scroll actuel:', currentScrollTop);
+        const scrollDifference = Math.abs(currentScrollTop - finalScrollTop);
+        
+        
+        console.log('🎯 Centrage:', {
+          indicatorOffsetTop,
+          targetScrollTop: targetScrollTop.toFixed(2),
+          finalScrollTop: finalScrollTop.toFixed(2),
+          currentScrollTop: currentScrollTop.toFixed(2),
+          scrollDifference: scrollDifference.toFixed(2),
+          needsScroll: scrollDifference > 10
+        });
+        
+        
+        // Scroll uniquement si nécessaire (seuil de 10px)
+        console.log('🔄 NTM...', scrollDifference);
+        console.log('timeline scrollable?', timeline.scrollHeight, timeline.clientHeight);
+        timeline.style.border = '1px solid red'; // voir visuellement la zone
+        if (scrollDifference > 0) {
+          timeline.scrollTo({
+            top: finalScrollTop,
+            behavior: smooth ? 'smooth' : 'instant'
+          });
+          
+          console.log('📜 Scroll vers:', finalScrollTop.toFixed(2));
+          return true;
+        } else {
+          console.log('✅ Déjà centré');
+          return false;
+        }
+        
+      } catch (error) {
+        console.error('❌ Erreur de centrage:', error);
+        return false;
+      }
+    });
+  }
+  
+  // === MISE À JOUR DE L'INDICATEUR DE TEMPS ===
+  
+  updateTimeIndicator() {
+    const currentStreamMinutes = this.getCurrentStreamMinutes();
+    const currentTimeStr = this.getCurrentTimeString();
+    
+    const timeIndicator = document.getElementById('current-time-indicator');
+    const timeLabel = document.getElementById('current-time-label');
+    const timeline = document.getElementById('timeline');
+    
+    if (!timeIndicator || !timeLabel || !timeline) return;
+    
+    // Récupérer les données de la timeline
+    const minStreamMinutes = parseInt(timeline.dataset.minTime || '0');
+    const totalDuration = parseInt(timeline.dataset.duration || (24 * 60));
+    
+    if (totalDuration <= 0) return;
+    
+    // Calculer la position en pourcentage
+    const positionPercentage = ((currentStreamMinutes - minStreamMinutes) / totalDuration) * 100;
+    
+    // Vérifier que la position est valide
+    if (positionPercentage < 0 || positionPercentage > 100) {
+      console.warn('⚠️ Position indicateur hors limites:', positionPercentage);
+      return;
+    }
+    
+    // Mettre à jour la position de l'indicateur
+    const newTop = `${positionPercentage}%`;
+    
+    // Appliquer les transitions seulement si la position change significativement
+    const currentTop = parseFloat(timeIndicator.style.top) || 0;
+    const newTopValue = positionPercentage;
+    const topDifference = Math.abs(currentTop - newTopValue);
+    
+    if (topDifference > 0.1) { // Seuil de 0.1% pour éviter les micro-mouvements
+      timeIndicator.style.transition = 'top 1s cubic-bezier(0.4, 0, 0.2, 1)';
+      timeLabel.style.transition = 'top 1s cubic-bezier(0.4, 0, 0.2, 1)';
+      
+      timeIndicator.style.top = newTop;
+      timeLabel.style.top = newTop;
+      timeLabel.textContent = currentTimeStr;
+      
+      // Déclencher un centrage doux après mise à jour
+      if (!this.isScrolling) {
+        if (this.centeringTimeout) {
+          clearTimeout(this.centeringTimeout);
+        }
+        
+        this.centeringTimeout = setTimeout(() => {
+          this.centerIndicatorNow(true);
+        }, 1500); // Attendre la fin de la transition
+      }
+    } else {
+      // Mise à jour du texte sans transition
+      timeLabel.textContent = currentTimeStr;
+    }
+    
+    // Vérifier et mettre à jour l'élément actuel
+    this.checkAndUpdateCurrentItem();
+  }
+  
+  // === CHARGEMENT DES DONNÉES ===
   
   loadPlanning() {
     return fetch('/api/planning')
@@ -70,142 +262,17 @@ class TimelineManager {
         return this.planningData;
       })
       .catch(error => {
-        console.error('Erreur chargement planning:', error);
+        console.error('❌ Erreur chargement planning:', error);
         throw error;
       });
   }
   
-  // === CENTRAGE FORCÉ SIMPLIFIÉ ===
-  
-  centerIndicatorNow() {
-    const timeline = document.getElementById('timeline');
-    if (!timeline) {
-      console.error('❌ Timeline element not found');
-      return;
-    }
-    
-    // Vérifier que les données sont disponibles
-    const minStreamMinutes = parseInt(timeline.dataset.minTime || 0);
-    const totalDuration = parseInt(timeline.dataset.duration || (24 * 60));
-    
-    console.log('📊 Données timeline:', {
-      minTime: minStreamMinutes,
-      duration: totalDuration,
-      hasData: timeline.dataset.minTime && timeline.dataset.duration
-    });
-    
-    if (totalDuration <= 0) {
-      console.error('❌ Durée invalide:', totalDuration);
-      return;
-    }
-    
-    // Attendre que le DOM soit stable
-    requestAnimationFrame(() => {
-      const timelineHeight = timeline.clientHeight;
-      const timelineScrollHeight = timeline.scrollHeight;
-      const currentStreamMinutes = this.getCurrentStreamMinutes();
-      
-      console.log('📏 Dimensions timeline:', {
-        clientHeight: timelineHeight,
-        scrollHeight: timelineScrollHeight,
-        currentTime: currentStreamMinutes,
-        ratio: timelineScrollHeight / timelineHeight
-      });
-      
-      // Vérifier que la timeline a du contenu
-      if (timelineScrollHeight <= timelineHeight) {
-        console.warn('⚠️ Timeline trop petite pour scroller');
-        return;
-      }
-      
-      // Calculer la position de l'indicateur
-      const positionPercentage = ((currentStreamMinutes - minStreamMinutes) / totalDuration) * 100;
-      
-      // Vérifier la validité du pourcentage
-      if (positionPercentage < 0 || positionPercentage > 100) {
-        console.warn('⚠️ Position hors limites:', {
-          percentage: positionPercentage,
-          currentMinutes: currentStreamMinutes,
-          minMinutes: minStreamMinutes,
-          maxMinutes: minStreamMinutes + totalDuration
-        });
-        return;
-      }
-      
-      // Position absolue de l'indicateur dans le contenu scrollable
-      const indicatorPosition = (positionPercentage / 100) * timelineScrollHeight;
-      
-      // Position de scroll pour centrer l'indicateur
-      const targetScrollPosition = indicatorPosition - (timelineHeight / 2);
-      
-      // Limites de scroll
-      const maxScroll = Math.max(0, timelineScrollHeight - timelineHeight);
-      const finalScrollPosition = Math.max(0, Math.min(targetScrollPosition, maxScroll));
-      
-      console.log('🎯 Calculs de centrage:', {
-        positionPercentage: positionPercentage.toFixed(2) + '%',
-        indicatorPosition: indicatorPosition.toFixed(2),
-        targetScrollPosition: targetScrollPosition.toFixed(2),
-        maxScroll: maxScroll.toFixed(2),
-        finalScrollPosition: finalScrollPosition.toFixed(2),
-        currentScroll: timeline.scrollTop.toFixed(2)
-      });
-      
-      // Vérifier si un scroll est nécessaire
-      const scrollDifference = Math.abs(timeline.scrollTop - finalScrollPosition);
-      
-      if (scrollDifference > 5) {
-        console.log('📜 Scrolling to position:', finalScrollPosition);
-        
-        timeline.scrollTo({
-          top: finalScrollPosition,
-          behavior: 'smooth'
-        });
-      } else {
-        console.log('✅ Déjà centré (écart: ' + scrollDifference.toFixed(2) + 'px)');
-      }
-    });
-  }
-  
-  updateTimeIndicator() {
-    const currentStreamMinutes = this.getCurrentStreamMinutes();
-    const currentTimeStr = this.getCurrentTimeString();
-    
-    const timeIndicator = document.getElementById('current-time-indicator');
-    const timeLabel = document.getElementById('current-time-label');
-    const timeline = document.getElementById('timeline');
-    
-    if (!timeIndicator || !timeLabel || !timeline) return;
-    
-    const minStreamMinutes = parseInt(timeline.dataset.minTime || 0);
-    const totalDuration = parseInt(timeline.dataset.duration || (24 * 60));
-    
-    if (totalDuration <= 0) return;
-    
-    const positionPercentage = ((currentStreamMinutes - minStreamMinutes) / totalDuration) * 100;
-    
-    if (positionPercentage < 0 || positionPercentage > 100) return;
-    
-    // Mettre à jour la position de l'indicateur
-    timeIndicator.style.transition = 'top 0.5s ease';
-    timeLabel.style.transition = 'top 0.5s ease';
-    timeIndicator.style.top = `${positionPercentage}%`;
-    timeLabel.style.top = `${positionPercentage}%`;
-    timeLabel.textContent = currentTimeStr;
-    
-    // Forcer le centrage après mise à jour
-    requestAnimationFrame(() => {
-      this.centerIndicatorNow();
-    });
-    
-    this.checkAndUpdateCurrentItem();
-  }
-  
-  // === RENDU SIMPLIFIÉ ===
+  // === RENDU PRINCIPAL ===
   
   render(forceRender = false) {
     const now = Date.now();
     
+    // Throttling des rendus
     if (!forceRender && now - this.lastRenderTime < this.RENDER_THROTTLE_MS) {
       this.updateTimeIndicator();
       this.updateStatus();
@@ -216,8 +283,10 @@ class TimelineManager {
     const timeline = document.getElementById('timeline');
     if (!timeline) return;
     
+    // Nettoyer la timeline
     timeline.innerHTML = '<div class="timeline-line"></div>';
     
+    // Gestion du cas vide
     if (this.planningData.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'timeline-empty';
@@ -226,35 +295,48 @@ class TimelineManager {
       return;
     }
     
-    // Convertir et trier les éléments
+    // Convertir et trier les éléments par heure de stream
     const streamItems = this.planningData.map(item => {
       const itemMinutes = this.timeToStreamMinutes(item.time);
-      const isDay2 = parseInt(item.time.split(':')[0]) < 10;
+      const itemHour = parseInt(item.time.split(':')[0]);
+      const isDay2 = itemHour < 10; // Jour 2 si l'heure est < 10h
       const streamMinutes = isDay2 ? itemMinutes + (24 * 60) : itemMinutes;
       
-      return { ...item, streamMinutes, displayTime: item.time, isDay2 };
+      return { 
+        ...item, 
+        streamMinutes, 
+        displayTime: item.time, 
+        isDay2,
+        originalIndex: this.planningData.indexOf(item)
+      };
     }).sort((a, b) => a.streamMinutes - b.streamMinutes);
     
-    // Calculer les bornes avec marge
-    const minStreamMinutes = Math.min(...streamItems.map(item => item.streamMinutes)) - 180;
-    const maxStreamMinutes = Math.max(...streamItems.map(item => item.streamMinutes)) + 300;
+    // Calculer les bornes temporelles avec marges
+    const minStreamMinutes = Math.min(...streamItems.map(item => item.streamMinutes)) - 180; // 3h avant
+    const maxStreamMinutes = Math.max(...streamItems.map(item => item.streamMinutes)) + 300; // 5h après
     const totalDuration = maxStreamMinutes - minStreamMinutes;
     
-    // Créer les éléments
+    // Créer les éléments de la timeline
     this.createHourMarkers(timeline, minStreamMinutes, maxStreamMinutes, totalDuration);
     this.createTimeIndicator(timeline, minStreamMinutes, totalDuration);
     
+    // Déterminer l'élément actuel et suivant
     const currentStreamMinutes = this.getCurrentStreamMinutes();
     const { currentIndex, nextIndex } = this.findCurrentAndNext(streamItems, currentStreamMinutes);
     
+    // Créer les éléments du planning
     this.createTimelineItems(timeline, streamItems, minStreamMinutes, totalDuration, currentIndex, nextIndex);
+    
+    // Mettre à jour le statut
     this.updateStatus(streamItems, currentIndex, nextIndex);
     
-    // Centrer immédiatement après le rendu
+    // Centrage initial après rendu
     setTimeout(() => {
-      this.centerIndicatorNow();
+      this.centerIndicatorNow(false); // Centrage immédiat sans animation
     }, 100);
   }
+  
+  // === CRÉATION DES ÉLÉMENTS DE LA TIMELINE ===
   
   createHourMarkers(timeline, minStreamMinutes, maxStreamMinutes, totalDuration) {
     const hourMarkers = document.createElement('div');
@@ -289,14 +371,17 @@ class TimelineManager {
   createTimeIndicator(timeline, minStreamMinutes, totalDuration) {
     const currentStreamMinutes = this.getCurrentStreamMinutes();
     
+    // Vérifier que l'heure actuelle est dans la plage
     if (currentStreamMinutes >= minStreamMinutes && currentStreamMinutes <= minStreamMinutes + totalDuration) {
       const positionPercentage = ((currentStreamMinutes - minStreamMinutes) / totalDuration) * 100;
       
+      // Créer l'indicateur de temps
       const timeIndicator = document.createElement('div');
       timeIndicator.className = 'current-time-indicator';
       timeIndicator.id = 'current-time-indicator';
       timeIndicator.style.top = `${positionPercentage}%`;
       
+      // Créer le label de temps
       const timeLabel = document.createElement('div');
       timeLabel.className = 'current-time-label';
       timeLabel.id = 'current-time-label';
@@ -307,8 +392,9 @@ class TimelineManager {
       timeline.appendChild(timeLabel);
     }
     
-    timeline.dataset.minTime = minStreamMinutes;
-    timeline.dataset.duration = totalDuration;
+    // Stocker les données pour les calculs futurs
+    timeline.dataset.minTime = minStreamMinutes.toString();
+    timeline.dataset.duration = totalDuration.toString();
   }
   
   findCurrentAndNext(streamItems, currentStreamMinutes) {
@@ -319,8 +405,12 @@ class TimelineManager {
       const item = streamItems[i];
       
       if (item.streamMinutes <= currentStreamMinutes) {
-        if (!item.checked) currentIndex = i;
+        // Élément en cours = dernier élément non coché avant ou à l'heure actuelle
+        if (!item.checked) {
+          currentIndex = i;
+        }
       } else if (nextIndex === -1) {
+        // Premier élément après l'heure actuelle
         nextIndex = i;
         break;
       }
@@ -336,11 +426,12 @@ class TimelineManager {
       const timelineItem = document.createElement('div');
       timelineItem.className = 'timeline-item';
       timelineItem.dataset.index = index;
+      timelineItem.dataset.originalIndex = item.originalIndex;
       
       // Alternance gauche/droite
       timelineItem.classList.add(index % 2 === 0 ? 'left' : 'right');
       
-      // États
+      // États des éléments
       if (item.checked) {
         timelineItem.classList.add('done');
       } else if (index === currentIndex) {
@@ -349,8 +440,10 @@ class TimelineManager {
         timelineItem.classList.add('next');
       }
       
+      // Position verticale
       timelineItem.style.top = `${positionPercentage}%`;
       
+      // Contenu de l'élément
       const timelineContent = this.createTimelineContent(item, index, currentIndex, nextIndex);
       timelineItem.appendChild(timelineContent);
       timeline.appendChild(timelineItem);
@@ -362,11 +455,18 @@ class TimelineManager {
     
     const timelineContent = document.createElement('div');
     timelineContent.className = 'timeline-content';
-    timelineContent.style.borderLeftColor = index === currentIndex ? '#ff3366' : eventConfig.color;
+    
+    // Couleur de bordure selon l'état
+    if (index === currentIndex) {
+      timelineContent.style.borderLeftColor = '#ff3366';
+    } else {
+      timelineContent.style.borderLeftColor = eventConfig.color;
+    }
     
     const contentHeader = document.createElement('div');
     contentHeader.className = 'timeline-content-header';
     
+    // Temps avec icône
     const timeSpan = document.createElement('span');
     timeSpan.className = 'timeline-time';
     
@@ -385,6 +485,7 @@ class TimelineManager {
     timeSpan.appendChild(icon);
     timeSpan.appendChild(document.createTextNode(` ${item.displayTime}`));
     
+    // Titre avec badges
     const titleSpan = document.createElement('span');
     titleSpan.className = 'timeline-title';
     titleSpan.textContent = item.label;
@@ -411,19 +512,23 @@ class TimelineManager {
     return timelineContent;
   }
   
+  // === MISE À JOUR DYNAMIQUE ===
+  
   checkAndUpdateCurrentItem() {
     const currentStreamMinutes = this.getCurrentStreamMinutes();
     let hasChanged = false;
     
     const streamItems = this.planningData.map(item => {
       const itemMinutes = this.timeToStreamMinutes(item.time);
-      const isDay2 = parseInt(item.time.split(':')[0]) < 10;
+      const itemHour = parseInt(item.time.split(':')[0]);
+      const isDay2 = itemHour < 10;
       const streamMinutes = isDay2 ? itemMinutes + (24 * 60) : itemMinutes;
       return { ...item, streamMinutes };
     }).sort((a, b) => a.streamMinutes - b.streamMinutes);
     
     const { currentIndex, nextIndex } = this.findCurrentAndNext(streamItems, currentStreamMinutes);
     
+    // Mettre à jour les classes CSS des éléments
     document.querySelectorAll('.timeline-item').forEach((item, index) => {
       const wasCurrentOrNext = item.classList.contains('current') || item.classList.contains('next');
       
@@ -438,17 +543,20 @@ class TimelineManager {
       }
     });
     
+    // Mettre à jour le statut si changement
     if (hasChanged) {
       this.updateStatus(streamItems, currentIndex, nextIndex);
     }
   }
   
   updateStatus(streamItems = null, currentIndex = -1, nextIndex = -1) {
+    // Recalculer si les données ne sont pas fournies
     if (!streamItems) {
       const currentStreamMinutes = this.getCurrentStreamMinutes();
       streamItems = this.planningData.map(item => {
         const itemMinutes = this.timeToStreamMinutes(item.time);
-        const isDay2 = parseInt(item.time.split(':')[0]) < 10;
+        const itemHour = parseInt(item.time.split(':')[0]);
+        const isDay2 = itemHour < 10;
         const streamMinutes = isDay2 ? itemMinutes + (24 * 60) : itemMinutes;
         return { ...item, streamMinutes };
       }).sort((a, b) => a.streamMinutes - b.streamMinutes);
@@ -486,7 +594,7 @@ class TimelineManager {
     if (nextIndex !== -1) {
       const item = streamItems[nextIndex];
       const eventConfig = this.getEventConfig(item.label);
-      const shortLabel = item.label.length > 20 ? item.label.substring(0, 17) + '...' : item.label;
+      const shortLabel = item.label.length > 25 ? item.label.substring(0, 22) + '...' : item.label;
       statusNext.innerHTML = `<span>${shortLabel}</span><i class="${eventConfig.icon}"></i>`;
     } else {
       statusNext.innerHTML = `<span>Fin du stream</span><i class="fas fa-flag-checkered"></i>`;
@@ -512,7 +620,8 @@ class TimelineManager {
     const currentStreamMinutes = this.getCurrentStreamMinutes();
     const streamItems = this.planningData.map(item => {
       const itemMinutes = this.timeToStreamMinutes(item.time);
-      const isDay2 = parseInt(item.time.split(':')[0]) < 10;
+      const itemHour = parseInt(item.time.split(':')[0]);
+      const isDay2 = itemHour < 10;
       const streamMinutes = isDay2 ? itemMinutes + (24 * 60) : itemMinutes;
       return { ...item, streamMinutes };
     }).sort((a, b) => a.streamMinutes - b.streamMinutes);
@@ -521,25 +630,41 @@ class TimelineManager {
     return currentIndex !== -1 ? streamItems[currentIndex] : null;
   }
   
-  // Méthodes pour compatibilité
+  // Contrôle du centrage automatique
   enableAutoScroll() {
-    console.log('🔄 Centrage forcé activé');
-    this.centerIndicatorNow();
+    this.AUTO_CENTER_ENABLED = true;
+    console.log('🔄 Centrage automatique activé');
+    this.centerIndicatorNow(true);
   }
   
   disableAutoScroll() {
-    console.log('⏸️ Centrage forcé (toujours actif)');
+    this.AUTO_CENTER_ENABLED = false;
+    console.log('⏸️ Centrage automatique désactivé');
   }
   
   isAutoScrollEnabled() {
-    return true; // Toujours actif
+    return this.AUTO_CENTER_ENABLED;
   }
   
+  // Méthodes de centrage manuel
   autoScrollToCurrentTime() {
-    this.centerIndicatorNow();
+    this.centerIndicatorNow(true);
   }
   
   autoScrollToCurrentItem() {
-    this.centerIndicatorNow();
+    this.centerIndicatorNow(true);
+  }
+  
+  // Nettoyage
+  destroy() {
+    this.stopAutoCentering();
+    
+    if (this.scrollTimeout) {
+      clearTimeout(this.scrollTimeout);
+    }
+    
+    if (this.centeringTimeout) {
+      clearTimeout(this.centeringTimeout);
+    }
   }
 }
