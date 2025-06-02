@@ -1111,14 +1111,28 @@ function handleWebSocketEvent(data) {
 
 async function checkConnectionStatus() {
   try {
-    const twitchStatus = await fetch('/api/twitch/status');
-    const streamlabsStatus = await fetch('/api/streamlabs/status');
+    const [twitchResponse, streamlabsResponse] = await Promise.allSettled([
+      fetch('/api/twitch/status'),
+      fetch('/api/streamlabs/status')
+    ]);
 
-    const twitchData = await twitchStatus.json();
-    const streamlabsData = await streamlabsStatus.json();
+    // Twitch status
+    if (twitchResponse.status === 'fulfilled' && twitchResponse.value.ok) {
+      const twitchData = await twitchResponse.value.json();
+      const twitchStatusEl = document.getElementById('twitch-status');
+      if (twitchStatusEl) {
+        twitchStatusEl.textContent = twitchData.connected ? 'Connected' : 'Disconnected';
+      }
+    }
 
-    document.getElementById('twitch-status').textContent = twitchData.connected ? 'Connected' : 'Disconnected';
-    document.getElementById('streamlabs-status').textContent = streamlabsData.connected ? 'Connected' : 'Disconnected';
+    // Streamlabs status  
+    if (streamlabsResponse.status === 'fulfilled' && streamlabsResponse.value.ok) {
+      const streamlabsData = await streamlabsResponse.value.json();
+      const streamlabsStatusEl = document.getElementById('streamlabs-status');
+      if (streamlabsStatusEl) {
+        streamlabsStatusEl.textContent = streamlabsData.connected ? 'Connected' : 'Disconnected';
+      }
+    }
   } catch (error) {
     console.error('Error checking connection status:', error);
   }

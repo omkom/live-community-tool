@@ -510,6 +510,30 @@ app.post('/api/status', (req, res) => {
   }
 });
 
+// ======= ROUTES API TWITCH/STREAMLABS =======
+
+// GET - Statut connexion Twitch  
+app.get('/api/twitch/status', (req, res) => {
+  try {
+    const connected = twitchOAuth && twitchOAuth.isConnected();
+    res.json({ connected });
+  } catch (error) {
+    res.status(500).json({ connected: false, error: error.message });
+  }
+});
+
+// GET - Statut connexion Streamlabs
+app.get('/api/streamlabs/status', (req, res) => {
+  try {
+    // Basé sur la présence de tokens Streamlabs dans la config
+    const tokens = twitchOAuth ? twitchOAuth.getCurrentTokens() : null;
+    const connected = tokens && process.env.STREAMLABS_SOCKET_TOKEN;
+    res.json({ connected: !!connected });
+  } catch (error) {
+    res.status(500).json({ connected: false, error: error.message });
+  }
+});
+
 // Effets
 app.post('/api/effect', (req, res) => {
   try {
