@@ -564,10 +564,12 @@ function initEventListeners() {
     testTwitchConnection();
   });
   
+  /*
   // Test de connexion Streamlabs
   document.getElementById('test-streamlabs-connection').addEventListener('click', () => {
     testStreamlabsConnection();
   });
+  */
   
   // Bouton pour effacer les événements
   document.getElementById('clear-events').addEventListener('click', () => {

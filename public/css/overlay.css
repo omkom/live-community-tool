@@ -215,3 +215,69 @@ html, body {
   pointer-events: none;
   z-index: 5;
 }
+
+/* Perturbation Qauntique */
+.background-image,
+.effect-image,
+.noise,
+.wave {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+.background-image {
+  background-image: url('https://www.creativefabrica.com/wp-content/uploads/2022/05/17/Futuristic-Red-Blue-Background-Design-Graphics-30683310-1.jpg');
+  background-size: cover;
+  background-position: center;
+  z-index: 1;
+}
+
+.effect-image {
+  background-image: url('https://darkdrug.com/wp-content/uploads/2024/05/AdobeStock_764269758-scaled-e1715122963566.jpeg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  z-index: 2;
+  will-change: transform;
+}
+
+.noise {
+  background: url('https://media.giphy.com/media/oEI9uBYSzLpBK/giphy.gif');
+  background-size: cover;
+  opacity: 0;
+  z-index: 3;
+  mix-blend-mode: overlay;
+}
+
+.wave {
+  opacity: 0;
+  z-index: 4;
+}
+
+#waveOverlay1 {
+  background-image: radial-gradient(circle at center, rgba(0, 255, 255, 0.3), transparent 50%);
+  animation: wavePulse 4s infinite;
+}
+#waveOverlay2 {
+  background-image: radial-gradient(circle at center, rgba(255, 0, 255, 0.3), transparent 50%);
+  animation: wavePulse 4s infinite 1s;
+}
+#waveOverlay3 {
+  background-image: radial-gradient(circle at center, rgba(255, 255, 0, 0.3), transparent 50%);
+  animation: wavePulse 4s infinite 2s;
+}
+
+@keyframes wavePulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}

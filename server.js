@@ -380,7 +380,7 @@ app.post('/api/channel-points/test-effect', async (req, res) => {
       });
     }
     
-    const validEffects = ['tada', 'flash', 'zoom', 'shake', 'bounce', 'pulse'];
+    const validEffects = ['perturbation', 'tada', 'flash', 'zoom', 'shake', 'bounce', 'pulse'];
     if (!validEffects.includes(effectType)) {
       return res.status(400).json({ 
         success: false, 
@@ -519,7 +519,7 @@ app.post('/api/effect', (req, res) => {
       return res.status(400).json({ error: 'Type effet manquant' });
     }
     
-    const validEffects = ['tada', 'flash', 'zoom', 'shake', 'bounce', 'pulse'];
+    const validEffects = ['perturbation', 'tada', 'flash', 'zoom', 'shake', 'bounce', 'pulse'];
     if (!validEffects.includes(type)) {
       return res.status(400).json({ error: 'Type effet invalide' });
     }

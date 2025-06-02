@@ -190,8 +190,8 @@ class TwitchChannelPoints extends EventEmitter {
   async checkRewardRedemptions(broadcasterId, reward, tokens) {
     try {
       // Récupérer les rachats récents (depuis le dernier poll)
-      const since = new Date(this.lastPollTime - 30000).toISOString(); // 30s de marge
-      
+      const since = new Date(Date.now() - 60000).toISOString(); // Dernière minute
+      console.log(`broadcasterId: ${broadcasterId}, reward: ${reward.title}, since: ${since}`);
       const redemptionsResponse = await axios.get(
         `https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id=${broadcasterId}&reward_id=${reward.id}&status=FULFILLED&sort=NEWEST&first=20&started_at=${since}`,
         {
@@ -224,6 +224,7 @@ class TwitchChannelPoints extends EventEmitter {
 
     } catch (error) {
       logger.error(`Erreur rachats pour ${reward.title}: ${error.message}`);
+      logger.error(`Détails: ${JSON.stringify(error.response?.data || {})}`);
     }
   }
 

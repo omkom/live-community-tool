@@ -91,6 +91,7 @@ class ChannelPointsAdmin {
               <h4><i class="fas fa-vial"></i> Test des Effets</h4>
               <div class="cp-test-controls">
                 <select id="cp-test-effect" class="cp-select">
+                  <option value="perturbation">🌀 Perturbation Visuelle</option>
                   <option value="tada">✨ Tada (Confetti)</option>
                   <option value="flash">⚡ Flash</option>
                   <option value="zoom">🔍 Zoom</option>
@@ -262,6 +263,7 @@ class ChannelPointsAdmin {
             <label class="cp-reward-label">Effet à déclencher:</label>
             <select class="cp-effect-select" data-reward-id="${reward.id}">
               <option value="">Aucun effet</option>
+              <option value="perturbation" ${reward.suggestedEffect === 'perturbation' ? 'selected' : ''}>🌀 Perturbation Visuelle</option>
               <option value="tada" ${reward.suggestedEffect === 'tada' ? 'selected' : ''}>✨ Tada (Confetti)</option>
               <option value="flash" ${reward.suggestedEffect === 'flash' ? 'selected' : ''}>⚡ Flash</option>
               <option value="zoom" ${reward.suggestedEffect === 'zoom' ? 'selected' : ''}>🔍 Zoom</option>

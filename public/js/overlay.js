@@ -152,6 +152,9 @@ function triggerEffect(type) {
   
   // Appliquer l'effet approprié
   switch (type) {
+    case 'perturbation':
+      triggerPerturbationEffect();
+      break;
     case 'tada':
       effectContent.textContent = '✨ TADA ✨';
       effectBox.style.opacity = '1';
@@ -209,4 +212,69 @@ function triggerEffect(type) {
     effectContent.className = '';
     effectContent.textContent = '';
   }, 3000);
+}
+
+function triggerPerturbationEffect() {
+  const effectImage = document.querySelector('.effect-image');
+  const noise = document.querySelector('.noise');
+  const waveOverlay1 = document.getElementById('waveOverlay1');
+  const waveOverlay2 = document.getElementById('waveOverlay2');
+  const waveOverlay3 = document.getElementById('waveOverlay3');
+
+  noise.style.opacity = '0.15';
+  waveOverlay1.style.opacity = '1';
+  waveOverlay2.style.opacity = '1';
+  waveOverlay3.style.opacity = '1';
+
+  let startTime = Date.now();
+  const duration = 5000;
+
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const viewportDiagonal = Math.sqrt(vw * vw + vh * vh);
+  const scaleBase = viewportDiagonal / Math.min(vw, vh);
+
+  function animate() {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    const entranceEased = 1 - Math.cos(progress * Math.PI / 2);
+    const zTranslate = -3000 + entranceEased * 3000;
+
+    effectImage.style.opacity = entranceEased * 0.3;
+
+    const rotation = entranceEased * 90;
+
+    const chaosTime = Date.now() * 0.005;
+    const chaosScale = 1 + Math.sin(chaosTime * 3.3) * 0.05;
+    const scale = scaleBase * (1.1 + chaosScale * 0.1);
+
+    effectImage.style.transform = `
+      scale(${scale})
+      rotate(${rotation}deg)
+      translateZ(${zTranslate}px)
+    `;
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      let fadeProgress = 1;
+      const fadeInterval = setInterval(() => {
+        fadeProgress -= 0.02;
+        if (fadeProgress <= 0) {
+          effectImage.style.opacity = '0';
+          noise.style.opacity = '0';
+          waveOverlay1.style.opacity = '0';
+          waveOverlay2.style.opacity = '0';
+          waveOverlay3.style.opacity = '0';
+          clearInterval(fadeInterval);
+        } else {
+          effectImage.style.opacity = (fadeProgress * 0.3).toFixed(3);
+          noise.style.opacity = (fadeProgress * 0.15).toFixed(3);
+        }
+      }, 30);
+    }
+  }
+
+  requestAnimationFrame(animate);
 }
