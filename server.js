@@ -131,9 +131,8 @@ function setupTwitchChatEvents() {
 
   // Mots-clés pour déclencher des effets
   const chatEffectKeywords = {
-    'perturbation': 'perturbation',
-    'perturbation quantique': 'perturbation', 
-    '!perturbation': 'perturbation',
+    '!PerturbQuantique': 'perturbation',
+    '🌀 Perturbation Quantique': 'perturbation',
     'confetti': 'tada',
     '!confetti': 'tada',
     'flash': 'flash',
