@@ -70,13 +70,13 @@
     <!-- Colonne Cagnotte & Interactions -->
     <div class="column">
       <div class="tabs">
-        <div class="tab" data-tab="twitch">
-          <i class="fas fa-broadcast-tower"></i> Twitch
+        <div class="tab active" data-tab="twitch">
+          <i class="fab fa-twitch"></i> Twitch
         </div>
         <div class="tab" data-tab="channel-points">
           <i class="fas fa-gem"></i> Channel Points
         </div>
-        <div class="tab active" data-tab="cagnotte">
+        <div class="tab" data-tab="cagnotte">
           <i class="fas fa-coins"></i> Cagnotte
         </div>
         <div class="tab" data-tab="interactions">
@@ -87,8 +87,102 @@
         </div>
       </div>
 
+      <!-- Tab Twitch Connection -->
+      <div class="tab-content active" id="twitch-tab">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fab fa-twitch"></i> Connexion Twitch
+            </div>
+            <div id="twitch-connection-status" class="status-badge">
+              <i class="fas fa-spinner fa-spin"></i> Vérification...
+            </div>
+          </div>
+
+          <!-- État de connexion -->
+          <div id="twitch-disconnected-state" class="twitch-connection-state">
+            <div class="twitch-intro">
+              <div class="twitch-icon">
+                <i class="fab fa-twitch"></i>
+              </div>
+              <h3>Connectez-vous à Twitch</h3>
+              <p>Autorisez l'accès à votre compte Twitch pour activer :</p>
+              <ul class="twitch-features">
+                <li><i class="fas fa-gem"></i> Channel Points interactifs</li>
+                <li><i class="fas fa-star"></i> Suivi des abonnements</li>
+                <li><i class="fas fa-comments"></i> Notifications en temps réel</li>
+                <li><i class="fas fa-chart-line"></i> Statistiques avancées</li>
+              </ul>
+              <button class="btn btn-twitch" id="connect-twitch-btn">
+                <i class="fab fa-twitch"></i> Se connecter avec Twitch
+              </button>
+              <div class="twitch-security">
+                <i class="fas fa-shield-alt"></i>
+                <small>Connexion sécurisée via OAuth 2.0. Vos données restent privées.</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- État connecté -->
+          <div id="twitch-connected-state" class="twitch-connection-state" style="display: none;">
+            <div class="twitch-user-info">
+              <div class="twitch-avatar">
+                <i class="fab fa-twitch"></i>
+              </div>
+              <div class="twitch-details">
+                <h3 id="twitch-display-name">Chargement...</h3>
+                <p id="twitch-username">@chargement</p>
+                <div class="twitch-scopes">
+                  <span class="scope-badge">Channel Points</span>
+                  <span class="scope-badge">Subscriptions</span>
+                </div>
+              </div>
+              <button class="btn btn-sm btn-outline" id="disconnect-twitch-btn">
+                <i class="fas fa-sign-out-alt"></i> Déconnecter
+              </button>
+            </div>
+
+            <div class="twitch-stats">
+              <div class="twitch-stat">
+                <div class="stat-label">Connecté depuis</div>
+                <div class="stat-value" id="twitch-connected-since">-</div>
+              </div>
+              <div class="twitch-stat">
+                <div class="stat-label">Token expire</div>
+                <div class="stat-value" id="twitch-token-expires">-</div>
+              </div>
+              <div class="twitch-stat">
+                <div class="stat-label">Permissions</div>
+                <div class="stat-value" id="twitch-permissions-count">-</div>
+              </div>
+            </div>
+
+            <div class="twitch-actions">
+              <button class="btn btn-sm" id="refresh-twitch-token">
+                <i class="fas fa-sync"></i> Rafraîchir Token
+              </button>
+              <button class="btn btn-sm" id="test-twitch-connection">
+                <i class="fas fa-vial"></i> Tester Connexion
+              </button>
+            </div>
+
+            <div id="twitch-test-results" class="twitch-results hidden">
+              <h4>Résultats du Test</h4>
+              <pre id="twitch-test-output"></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Channel Points -->
+      <div class="tab-content" id="channel-points-tab">
+        <div id="channel-points-container">
+          <!-- Contenu généré par ChannelPointsAdmin -->
+        </div>
+      </div>
+
       <!-- Tab Cagnotte -->
-      <div class="tab-content active" id="cagnotte-tab">
+      <div class="tab-content" id="cagnotte-tab">
         <div class="card">
           <div class="card-header">
             <div class="card-title">
@@ -155,22 +249,6 @@
             <input type="datetime-local" id="stream_start_time" class="autosave" data-autosave="donation">
             <small class="form-text">Format: YYYY-MM-DDThh:mm (laissez vide pour minuit)</small>
           </div>
-        </div>
-      </div>
-
-      <!-- Tab Twitch -->
-      <div class="tab-content" id="twitch-tab">
-        <div id="twitch-status-panel">
-          <h2>Connection Status</h2>
-          <p>Twitch: <span id="twitch-status">Loading...</span></p>
-          <p>Streamlabs: <span id="streamlabs-status">Loading...</span></p>
-        </div>
-      </div>
-
-      <!-- NOUVEAU: Tab Channel Points -->
-      <div class="tab-content" id="channel-points-tab">
-        <div id="channel-points-container">
-          <!-- Contenu généré par ChannelPointsAdmin -->
         </div>
       </div>
 
@@ -254,247 +332,229 @@
   <!-- Toast container pour notifications -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <!-- CSS Supplémentaire -->
+  <!-- CSS pour la connexion Twitch -->
   <style>
-    .save-indicator {
-      display: inline-block;
-      margin-left: 10px;
-      opacity: 0;
-      transition: opacity 0.3s ease, color 0.3s ease;
+    .btn-twitch {
+      background: #9146ff !important;
+      color: white !important;
+      border: none !important;
+      padding: 12px 24px !important;
+      font-size: 1.1rem !important;
+      border-radius: 8px !important;
+      transition: all 0.3s ease !important;
+    }
+
+    .btn-twitch:hover {
+      background: #7928d4 !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 0 8px 20px rgba(145, 70, 255, 0.3) !important;
+    }
+
+    .twitch-intro {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .twitch-icon {
+      font-size: 4rem;
+      color: #9146ff;
+      margin-bottom: 20px;
+    }
+
+    .twitch-intro h3 {
       color: var(--primary);
-    }
-
-    .save-indicator.saving {
-      opacity: 1;
-      animation: pulse 1s infinite;
-    }
-
-    .save-indicator.saved {
-      opacity: 1;
-      color: var(--success);
-    }
-
-    .save-indicator.error {
-      opacity: 1;
-      color: var(--error);
-    }
-
-    .actions-bar {
-      display: flex;
-      justify-content: space-between;
       margin-bottom: 15px;
+      font-size: 1.5rem;
     }
 
-    .toggle-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .twitch-intro p {
+      color: var(--mid);
+      margin-bottom: 20px;
     }
 
-    .toggle-switch {
-      position: relative;
+    .twitch-features {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0 30px 0;
+      text-align: left;
       display: inline-block;
-      width: 50px;
-      height: 24px;
     }
 
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
+    .twitch-features li {
+      padding: 8px 0;
+      color: var(--light);
     }
 
-    .toggle-slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      transition: .4s;
-      border-radius: 24px;
+    .twitch-features i {
+      color: var(--primary);
+      margin-right: 10px;
+      width: 20px;
     }
 
-    .toggle-slider:before {
-      position: absolute;
-      content: "";
-      height: 16px;
-      width: 16px;
-      left: 4px;
-      bottom: 4px;
-      background-color: white;
-      transition: .4s;
-      border-radius: 50%;
-    }
-
-    input:checked + .toggle-slider {
-      background-color: var(--primary);
-    }
-
-    input:checked + .toggle-slider:before {
-      transform: translateX(26px);
-    }
-
-    .status-badge {
-      font-size: 0.8rem;
-      padding: 2px 6px;
-      border-radius: 10px;
-      background-color: var(--mid);
-    }
-
-    .status-badge.connected {
-      background-color: var(--success);
-    }
-
-    .live-events-container {
-      max-height: 300px;
-      overflow-y: auto;
-      background: var(--dark);
-      border-radius: 4px;
-      padding: 10px;
-    }
-
-    .event-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 10px;
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.05);
-      margin-bottom: 8px;
-      transition: all 0.3s ease;
-      border-left: 3px solid var(--primary);
-      animation: fadeIn 0.3s;
-    }
-
-    .event-item:hover {
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    .event-icon {
+    .twitch-security {
+      margin-top: 20px;
+      color: var(--mid);
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, 0.2);
+      gap: 8px;
     }
 
-    .event-content {
+    .twitch-user-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 20px;
+      background: var(--dark-light);
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .twitch-avatar {
+      width: 60px;
+      height: 60px;
+      background: #9146ff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: white;
+    }
+
+    .twitch-details {
       flex: 1;
     }
 
-    .event-time {
-      font-size: 0.75rem;
-      color: var(--mid);
-    }
-
-    .event-type {
-      font-weight: bold;
+    .twitch-details h3 {
+      margin: 0 0 5px 0;
       color: var(--primary);
     }
 
-    .event-item.donation {
-      border-left-color: #4CAF50;
+    .twitch-details p {
+      margin: 0 0 10px 0;
+      color: var(--mid);
     }
 
-    .event-item.subscription {
-      border-left-color: #9C27B0;
-    }
-
-    .event-item.follow {
-      border-left-color: #2196F3;
-    }
-
-    .event-item.cheer {
-      border-left-color: #FF9800;
-    }
-
-    .event-item.raid {
-      border-left-color: #E91E63;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes pulse {
-      0% { opacity: 0.6; }
-      50% { opacity: 1; }
-      100% { opacity: 0.6; }
-    }
-
-    .form-actions {
+    .twitch-scopes {
       display: flex;
-      justify-content: flex-end;
-      margin-top: 15px;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .scope-badge {
+      background: var(--primary);
+      color: var(--dark);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .twitch-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .twitch-stat {
+      background: var(--dark-light);
+      padding: 15px;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .stat-label {
+      color: var(--mid);
+      font-size: 0.9rem;
+      margin-bottom: 5px;
+    }
+
+    .stat-value {
+      color: var(--light);
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+    .twitch-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    .status-badge.connected {
+      background: var(--success);
+      color: var(--dark);
+    }
+
+    .status-badge.disconnected {
+      background: var(--error);
+      color: white;
+    }
+
+    .status-badge.loading {
+      background: var(--mid);
+      color: white;
+    }
+
+    .btn-outline {
+      background: transparent !important;
+      border: 1px solid var(--primary) !important;
+      color: var(--primary) !important;
+    }
+
+    .btn-outline:hover {
+      background: var(--primary) !important;
+      color: var(--dark) !important;
     }
   </style>
 
   <!-- Scripts -->
   <script src="js/admin.js"></script>
-  <script src="js/twitch-status.js"></script>
+  <script src="js/twitch-oauth-client.js"></script>
   <script src="js/channel-points-admin.js"></script>
   <script>
-    // Initialize the Twitch status manager when the page loads
+    // Initialize everything when the page loads
     document.addEventListener('DOMContentLoaded', () => {
-      // Create the Twitch status manager
-      const twitchManager = new TwitchStatusManager('twitch-status-panel');
+      // Initialize Twitch OAuth client
+      const twitchOAuth = new TwitchOAuthClient();
+      
+      // Initialize Channel Points admin
+      const channelPointsAdmin = new ChannelPointsAdmin();
 
-      // Créer le gestionnaire Channel Points
-      channelPointsAdmin = new ChannelPointsAdmin();
-
-      // Handle tab visibility
+      // Handle tab switching
       const tabs = document.querySelectorAll('.tab');
       tabs.forEach(tab => {
         tab.addEventListener('click', () => {
           const tabId = tab.getAttribute('data-tab');
-          if (tabId === 'twitch') {
-            twitchManager.setVisible(true);
-          } else {
-            twitchManager.setVisible(false);
-          }
           
+          // Update Channel Points when tab becomes visible
           if (tabId === 'channel-points') {
-            // Actualiser les données quand l'onglet devient visible
             setTimeout(() => {
-              if (channelPointsAdmin) {
-                channelPointsAdmin.loadStatus();
-                channelPointsAdmin.loadRewards();
-              }
+              channelPointsAdmin.loadStatus();
+              channelPointsAdmin.loadRewards();
             }, 100);
           }
         });
       });
 
-      // Function to check the status of Twitch and Streamlabs connections
-      async function checkConnectionStatus() {
-        try {
-          const twitchStatus = await fetch('/api/twitch/status');
-          const streamlabsStatus = await fetch('/api/streamlabs/status');
-
-          const twitchData = await twitchStatus.json();
-          const streamlabsData = await streamlabsStatus.json();
-
-          document.getElementById('twitch-status').textContent = twitchData.connected ? 'Connected' : 'Disconnected';
-          document.getElementById('streamlabs-status').textContent = streamlabsData.connected ? 'Connected' : 'Disconnected';
-        } catch (error) {
-          console.error('Error checking connection status:', error);
-        }
-      }
-
-      // Call the function to check connection status when the page loads
-      checkConnectionStatus();
-
-      // Écouter les événements WebSocket pour les Channel Points
+      // Listen for WebSocket events for Channel Points
       if (typeof ws !== 'undefined' && ws) {
-        // Ajouter un listener pour les événements Channel Points
         const originalOnMessage = ws.onmessage;
         ws.onmessage = (event) => {
-          // Appeler le handler original
+          // Call original handler
           if (originalOnMessage) {
             originalOnMessage(event);
           }
@@ -502,15 +562,30 @@
           try {
             const data = JSON.parse(event.data);
             
-            // Gérer les événements Channel Points
+            // Handle Channel Points events
             if (data.type === 'channel_points_event' && channelPointsAdmin) {
               channelPointsAdmin.handleChannelPointsEvent(data.data);
             }
           } catch (e) {
-            // Ignorer les erreurs de parsing
+            // Ignore parsing errors
           }
         };
       }
+
+      // Check for URL parameters (OAuth callback)
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('twitch_connected') === 'true') {
+        showToast('Connexion Twitch réussie !', 'success');
+        // Clear the URL parameter
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (urlParams.get('twitch_error')) {
+        showToast('Erreur de connexion Twitch: ' + urlParams.get('twitch_error'), 'error');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      // Make twitchOAuth globally available
+      window.twitchOAuth = twitchOAuth;
+      window.channelPointsAdmin = channelPointsAdmin;
     });
   </script>
 </body>
