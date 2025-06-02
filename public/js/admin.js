@@ -504,35 +504,44 @@ function updateDonationProgress(donationTotal, donationGoal, subsTotal, subsGoal
 // Initialisation des écouteurs d'événements
 function initEventListeners() {
   // Bouton ajout de ligne
-  document.getElementById('addPlanningRow').addEventListener('click', () => {
-    const now = new Date();
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    
-    planningData.push({
-      time: `${hours}:${minutes}`,
-      label: 'Nouveau moment',
-      checked: false
+  const addPlanningBtn = document.getElementById('addPlanningRow');
+  if (addPlanningBtn) {
+    addPlanningBtn.addEventListener('click', () => {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      
+      planningData.push({
+        time: `${hours}:${minutes}`,
+        label: 'Nouveau moment',
+        checked: false
+      });
+      
+      renderPlanningTable();
+      renderTimeline();
+      queueSave('planning');
     });
-    
-    renderPlanningTable();
-    renderTimeline();
-    queueSave('planning');
-  });
+  }
   
   // Bouton tri du planning
-  document.getElementById('sortPlanning').addEventListener('click', () => {
-    planningData.sort((a, b) => a.time.localeCompare(b.time));
-    renderPlanningTable();
-    renderTimeline();
-    showToast('Planning trié par ordre chronologique', 'info');
-    queueSave('planning');
-  });
+  const sortPlanningBtn = document.getElementById('sortPlanning');
+  if (sortPlanningBtn) {
+    sortPlanningBtn.addEventListener('click', () => {
+      planningData.sort((a, b) => a.time.localeCompare(b.time));
+      renderPlanningTable();
+      renderTimeline();
+      showToast('Planning trié par ordre chronologique', 'info');
+      queueSave('planning');
+    });
+  }
   
   // Bouton pour aller à l'élément courant
-  document.getElementById('jumpToCurrent').addEventListener('click', () => {
-    scrollToCurrentItem();
-  });
+  const jumpToCurrentBtn = document.getElementById('jumpToCurrent');
+  if (jumpToCurrentBtn) {
+    jumpToCurrentBtn.addEventListener('click', () => {
+      scrollToCurrentItem();
+    });
+  }
   
   // Boutons d'effets
   document.querySelectorAll('.effect-btn').forEach(btn => {
@@ -543,40 +552,61 @@ function initEventListeners() {
   });
   
   // Bouton d'envoi de message
-  document.getElementById('sendMessage').addEventListener('click', () => {
-    sendMessage();
-  });
+  const sendMessageBtn = document.getElementById('sendMessage');
+  if (sendMessageBtn) {
+    sendMessageBtn.addEventListener('click', () => {
+      sendMessage();
+    });
+  }
   
   // Compteur de caractères pour le message
   const msgTextarea = document.getElementById('liveMsg');
-  msgTextarea.addEventListener('input', () => {
-    const count = msgTextarea.value.length;
-    document.getElementById('charCount').textContent = count;
-  });
+  if (msgTextarea) {
+    msgTextarea.addEventListener('input', () => {
+      const count = msgTextarea.value.length;
+      const charCountEl = document.getElementById('charCount');
+      if (charCountEl) {
+        charCountEl.textContent = count;
+      }
+    });
+  }
   
   // Rafraîchissement des logs
-  document.getElementById('refreshLogs').addEventListener('click', () => {
-    loadLogs();
-  });
+  const refreshLogsBtn = document.getElementById('refreshLogs');
+  if (refreshLogsBtn) {
+    refreshLogsBtn.addEventListener('click', () => {
+      loadLogs();
+    });
+  }
   
-  // Test de connexion Twitch
-  document.getElementById('test-twitch-connection').addEventListener('click', () => {
-    testTwitchConnection();
-  });
-  
-  /*
-  // Test de connexion Streamlabs
-  document.getElementById('test-streamlabs-connection').addEventListener('click', () => {
-    testStreamlabsConnection();
-  });
-  */
+  // Test de connexion Twitch - CORRECTION ICI
+  const testTwitchBtn = document.getElementById('test-twitch-connection');
+  if (testTwitchBtn) {
+    testTwitchBtn.addEventListener('click', () => {
+      testTwitchConnection();
+    });
+  } else {
+    console.warn('Element test-twitch-connection not found - will retry later');
+    // Réessayer après 1 seconde
+    setTimeout(() => {
+      const testTwitchBtnRetry = document.getElementById('test-twitch-connection');
+      if (testTwitchBtnRetry) {
+        testTwitchBtnRetry.addEventListener('click', () => {
+          testTwitchConnection();
+        });
+      }
+    }, 1000);
+  }
   
   // Bouton pour effacer les événements
-  document.getElementById('clear-events').addEventListener('click', () => {
-    liveEvents.length = 0;
-    renderLiveEvents();
-    showToast('Liste d\'événements effacée', 'info');
-  });
+  const clearEventsBtn = document.getElementById('clear-events');
+  if (clearEventsBtn) {
+    clearEventsBtn.addEventListener('click', () => {
+      liveEvents.length = 0;
+      renderLiveEvents();
+      showToast('Liste d\'événements effacée', 'info');
+    });
+  }
 }
 
 // Déclenchement d'un effet

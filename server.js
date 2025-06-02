@@ -81,11 +81,23 @@ function initializeTwitchOAuth() {
     twitchOAuth = new TwitchOAuth();
     twitchOAuth.setupRoutes(app);
     
-    // Initialiser le chat ET Channel Points si connecté
+    // Initialiser Channel Points ET Chat si connecté
     if (twitchOAuth.isConnected()) {
-      initializeTwitchChat();     // AJOUTER
-      initializeChannelPoints();
-      setupTwitchChatEvents();    // AJOUTER
+      logger.log('OAuth Twitch connecté, initialisation des services...');
+      
+      const initChannelPoints = initializeChannelPoints();
+      const initChat = initializeTwitchChat();
+      
+      if (initChannelPoints) {
+        logger.log('✅ Channel Points initialisé automatiquement');
+      }
+      
+      if (initChat) {
+        logger.log('✅ Chat Twitch initialisé automatiquement');
+        setupTwitchChatEvents();
+      }
+    } else {
+      logger.log('OAuth Twitch non connecté - services en attente');
     }
     
     logger.log('✅ OAuth Twitch initialisé');
@@ -197,13 +209,13 @@ function initializeChannelPoints() {
       return false;
     }
 
-    // Créer le gestionnaire Channel Points avec les tokens OAuth
+    // Créer le gestionnaire Channel Points
     channelPointsManager = new TwitchChannelPoints(twitchOAuth);
     
-    // Configurer les événements Channel Points
+    // Configurer les événements
     setupChannelPointsEvents();
     
-    logger.log('✅ Channel Points initialisé');
+    logger.log('✅ Channel Points initialisé avec OAuth');
     return true;
   } catch (error) {
     logger.error(`Erreur initialisation Channel Points: ${error.message}`);
@@ -216,22 +228,22 @@ function setupChannelPointsEvents() {
 
   // Événement de rachat Channel Points
   channelPointsManager.on('redemption', (data) => {
-    logger.log(`Channel Points rachetés: ${data.reward.title} par ${data.user.display_name}`);
+    logger.log(`💎 Channel Points: ${data.reward.title} par ${data.user.display_name} (${data.reward.cost}pts)`);
     
-    // Déclencher l'effet correspondant
+    // Déclencher l'effet correspondant immédiatement
     if (data.effect) {
+      logger.log(`🎯 Déclenchement effet: ${data.effect}`);
       broadcast({ type: 'effect', value: data.effect });
       
-      // Envoyer un message après l'effet
+      // Message de confirmation après l'effet
       setTimeout(() => {
-        broadcast({ 
-          type: 'message', 
-          value: `${data.user.display_name} a utilisé "${data.reward.title}" !` 
-        });
-      }, 1000);
+        const message = `${data.user.display_name} a utilisé "${data.reward.title}" !`;
+        broadcast({ type: 'message', value: message });
+        logger.log(`💬 Message envoyé: ${message}`);
+      }, 1500);
     }
     
-    // Diffuser l'événement aux clients WebSocket
+    // Diffuser l'événement aux clients admin
     broadcast({ 
       type: 'channel_points_event', 
       data: {
@@ -242,12 +254,50 @@ function setupChannelPointsEvents() {
         timestamp: new Date().toISOString()
       }
     });
+    
+    // Log détaillé pour debug
+    logger.activity('channel_points_redemption', {
+      reward_id: data.reward.id,
+      reward_title: data.reward.title,
+      user_id: data.user.id,
+      user_name: data.user.display_name,
+      cost: data.reward.cost,
+      effect: data.effect
+    });
   });
 
-  // Événement d'erreur Channel Points
+  // Événements de monitoring
+  channelPointsManager.on('monitoring:started', () => {
+    logger.log('🎯 Surveillance Channel Points démarrée');
+    broadcast({ 
+      type: 'channel_points_status', 
+      data: { monitoring: true }
+    });
+  });
+
+  channelPointsManager.on('monitoring:stopped', () => {
+    logger.log('🎯 Surveillance Channel Points arrêtée');
+    broadcast({ 
+      type: 'channel_points_status', 
+      data: { monitoring: false }
+    });
+  });
+
+  // Événement d'erreur
   channelPointsManager.on('error', (error) => {
     logger.error(`Erreur Channel Points: ${error.message}`);
+    
+    // Informer l'admin des erreurs
+    broadcast({ 
+      type: 'channel_points_error', 
+      data: { 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }
+    });
   });
+
+  logger.log('✅ Événements Channel Points configurés');
 }
 
 function setupTwitchChatEvents() {
@@ -303,6 +353,92 @@ function setupTwitchChatEvents() {
     }
   });
 }
+
+// ======= FONCTION HELPER POUR RECONNEXION =======
+
+// Fonction pour réinitialiser les services après connexion OAuth
+function reinitializeServicesAfterOAuth() {
+  try {
+    logger.log('🔄 Réinitialisation des services après connexion OAuth...');
+    
+    // Réinitialiser Channel Points
+    if (channelPointsManager) {
+      channelPointsManager.stopMonitoring();
+      channelPointsManager = null;
+    }
+    
+    const channelPointsInit = initializeChannelPoints();
+    const chatInit = initializeTwitchChat();
+    
+    if (channelPointsInit) {
+      logger.log('✅ Channel Points réinitialisé');
+    }
+    
+    if (chatInit) {
+      setupTwitchChatEvents();
+      logger.log('✅ Chat Twitch réinitialisé');
+    }
+    
+    return true;
+  } catch (error) {
+    logger.error(`Erreur réinitialisation services: ${error.message}`);
+    return false;
+  }
+}
+
+// ======= ROUTE API AMÉLIORÉE POUR DEBUG =======
+
+// GET - Statut détaillé du système
+app.get('/api/system/status', (req, res) => {
+  try {
+    const twitchConnected = twitchOAuth && twitchOAuth.isConnected();
+    const twitchInfo = twitchConnected ? twitchOAuth.getConnectionInfo() : null;
+    
+    const channelPointsStatus = channelPointsManager ? channelPointsManager.getStatus() : null;
+    
+    res.json({
+      timestamp: new Date().toISOString(),
+      server: {
+        uptime: process.uptime(),
+        connections: connections.size
+      },
+      twitch: {
+        oauth_connected: twitchConnected,
+        user: twitchInfo ? twitchInfo.user : null,
+        scopes: twitchInfo ? twitchInfo.scopes : null
+      },
+      channel_points: {
+        initialized: !!channelPointsManager,
+        monitoring: channelPointsStatus ? channelPointsStatus.isMonitoring : false,
+        effects_count: channelPointsStatus ? channelPointsStatus.rewardEffectsCount : 0,
+        events_processed: channelPointsStatus ? channelPointsStatus.eventSubscriptionsCount : 0
+      },
+      chat: {
+        initialized: !!twitchChat
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST - Réinitialiser les services
+app.post('/api/system/reinitialize', (req, res) => {
+  try {
+    const result = reinitializeServicesAfterOAuth();
+    
+    res.json({
+      success: result,
+      message: result ? 'Services réinitialisés' : 'Échec réinitialisation',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
 
 // Initialiser OAuth au démarrage
 initializeTwitchOAuth();
@@ -667,6 +803,104 @@ app.post('/api/status', (req, res) => {
 });
 
 // ======= ROUTES API TWITCH/STREAMLABS =======
+
+// POST - Test connexion Twitch
+app.post('/api/twitch/test', async (req, res) => {
+  try {
+    if (!twitchOAuth || !twitchOAuth.isConnected()) {
+      return res.json({
+        success: false,
+        message: 'OAuth Twitch non connecté'
+      });
+    }
+
+    // Utiliser la méthode de test existante du Channel Points
+    if (channelPointsManager) {
+      const testResult = await channelPointsManager.testTwitchAPI();
+      
+      res.json({
+        success: testResult.success,
+        message: testResult.success ? 'Connexion Twitch réussie' : testResult.error,
+        data: testResult.user || null
+      });
+    } else {
+      // Test basique avec les tokens OAuth
+      const tokens = await twitchOAuth.ensureValidTokens();
+      if (!tokens) {
+        return res.json({
+          success: false,
+          message: 'Tokens Twitch invalides'
+        });
+      }
+
+      const userInfo = twitchOAuth.getConnectionInfo();
+      
+      res.json({
+        success: true,
+        message: 'Connexion OAuth valide',
+        data: {
+          user: userInfo.user,
+          scopes: userInfo.scopes,
+          expires_at: userInfo.expires_at
+        }
+      });
+    }
+
+  } catch (error) {
+    logger.error(`Erreur test connexion Twitch: ${error.message}`);
+    res.json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// GET - Configuration Twitch
+app.get('/api/twitch/config', (req, res) => {
+  try {
+    if (!twitchOAuth) {
+      return res.json({
+        enabled: false,
+        connected: false,
+        config: null
+      });
+    }
+
+    const info = twitchOAuth.getConnectionInfo();
+    
+    res.json({
+      enabled: true,
+      connected: info.connected,
+      config: info.connected ? {
+        user: info.user,
+        scopes: info.scopes,
+        expires_at: info.expires_at
+      } : null
+    });
+
+  } catch (error) {
+    logger.error(`Erreur config Twitch: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST - Configuration temporaire Twitch (pour compatibilité)
+app.post('/api/twitch/config', (req, res) => {
+  try {
+    // Cette route est maintenue pour compatibilité avec l'admin
+    // Mais avec OAuth, la configuration se fait via la connexion
+    
+    res.json({
+      success: true,
+      message: 'Avec OAuth, utilisez la connexion Twitch pour configurer',
+      config: twitchOAuth ? twitchOAuth.getConnectionInfo() : null
+    });
+
+  } catch (error) {
+    logger.error(`Erreur config Twitch: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // GET - Statut connexion Twitch  
 app.get('/api/twitch/status', (req, res) => {

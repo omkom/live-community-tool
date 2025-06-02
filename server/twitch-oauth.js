@@ -348,26 +348,33 @@ class TwitchOAuth {
 
     // Route de callback OAuth
     app.get('/auth/twitch/callback', async (req, res) => {
-      try {
-        const { code, state, error } = req.query;
-
-        if (error) {
-          throw new Error(`Erreur OAuth Twitch: ${error}`);
-        }
-
-        if (!code || !state) {
-          throw new Error('Code ou state manquant');
-        }
-
-        const tokens = await this.exchangeCodeForTokens(code, state);
+        try {
+            const { code, state, error } = req.query;
         
-        // Rediriger vers l'admin avec succès
-        res.redirect('/admin.html?twitch_connected=true');
-
-      } catch (error) {
-        logger.error(`Erreur callback OAuth: ${error.message}`);
-        res.redirect('/admin.html?twitch_error=' + encodeURIComponent(error.message));
-      }
+            if (error) {
+                throw new Error(`Erreur OAuth Twitch: ${error}`);
+            }
+        
+            if (!code || !state) {
+             throw new Error('Code ou state manquant');
+            }
+        
+            const tokens = await this.exchangeCodeForTokens(code, state);
+            
+            // NOUVEAU: Déclencher la réinitialisation des services après connexion
+            setTimeout(() => {
+                if (global.reinitializeServicesAfterOAuth) {
+                logger.log('🔄 Déclenchement réinitialisation services post-OAuth...');
+                global.reinitializeServicesAfterOAuth();
+                }
+            }, 1000); // Délai pour s'assurer que les tokens sont bien sauvés
+            
+            res.redirect('/admin.html?twitch_connected=true');
+        
+        } catch (error) {
+            logger.error(`Erreur callback OAuth: ${error.message}`);
+            res.redirect('/admin.html?twitch_error=' + encodeURIComponent(error.message));
+        }
     });
 
     // Route pour vérifier le statut de connexion
