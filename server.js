@@ -4,6 +4,10 @@ const http = require('http');
 const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
+const TwitchChat = require('./server/twitch');
+
+// Variable globale pour le chat
+let twitchChat = null;
 
 // Modules serveur
 const logger = require('./server/logger');
@@ -77,15 +81,114 @@ function initializeTwitchOAuth() {
     twitchOAuth = new TwitchOAuth();
     twitchOAuth.setupRoutes(app);
     
-    // Initialiser Channel Points si connecté
+    // Initialiser le chat ET Channel Points si connecté
     if (twitchOAuth.isConnected()) {
+      initializeTwitchChat();     // AJOUTER
       initializeChannelPoints();
+      setupTwitchChatEvents();    // AJOUTER
     }
     
     logger.log('✅ OAuth Twitch initialisé');
   } catch (error) {
     logger.error(`Erreur initialisation OAuth Twitch: ${error.message}`);
   }
+}
+
+function initializeTwitchChat() {
+  try {
+    const tokens = twitchOAuth.getCurrentTokens();
+    if (!tokens) {
+      logger.log('Pas de tokens pour le chat Twitch');
+      return false;
+    }
+
+    // Configurer le chat avec les tokens OAuth
+    const chatConfig = {
+      enabled: true,
+      twitch: {
+        clientId: process.env.TWITCH_CLIENT_ID,
+        username: tokens.login,
+        oauthToken: tokens.access_token,
+        channelName: tokens.login
+      }
+    };
+
+    // Initialiser le module chat
+    twitchChat = TwitchChat;
+    twitchChat.initialize();
+    
+    logger.log('✅ Chat Twitch initialisé');
+    return true;
+  } catch (error) {
+    logger.error(`Erreur initialisation chat Twitch: ${error.message}`);
+    return false;
+  }
+}
+
+// Fonction pour écouter les événements de chat
+function setupTwitchChatEvents() {
+  if (!twitchChat) return;
+
+  // Mots-clés pour déclencher des effets
+  const chatEffectKeywords = {
+    'perturbation': 'perturbation',
+    'perturbation quantique': 'perturbation', 
+    '!perturbation': 'perturbation',
+    'confetti': 'tada',
+    '!confetti': 'tada',
+    'flash': 'flash',
+    '!flash': 'flash',
+    'zoom': 'zoom',
+    '!zoom': 'zoom',
+    'shake': 'shake',
+    '!shake': 'shake',
+    'bounce': 'bounce',
+    '!bounce': 'bounce',
+    'pulse': 'pulse',
+    '!pulse': 'pulse'
+  };
+
+  // Écouter les événements chat
+  twitchChat.on('chat', (data) => {
+    const message = data.message.toLowerCase().trim();
+    const username = data.username;
+    
+    logger.log(`Chat reçu: ${username}: ${message}`);
+    
+    // Chercher un mot-clé dans le message
+    for (const [keyword, effect] of Object.entries(chatEffectKeywords)) {
+      if (message.includes(keyword)) {
+        logger.log(`🎯 Effet chat détecté: ${keyword} → ${effect} par ${username}`);
+        
+        // Déclencher l'effet via WebSocket
+        broadcast({ type: 'effect', value: effect });
+        
+        // Message de confirmation
+        setTimeout(() => {
+          broadcast({ 
+            type: 'message', 
+            value: `${username} a déclenché ${effect} !` 
+          });
+        }, 1000);
+        
+        // Événement pour l'admin
+        broadcast({ 
+          type: 'chat_effect_triggered', 
+          data: {
+            user: username,
+            message: message,
+            keyword: keyword,
+            effect: effect,
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+        break;
+      }
+    }
+  });
+
+  logger.log('✅ Écoute des effets chat configurée');
 }
 
 function initializeChannelPoints() {
@@ -145,6 +248,60 @@ function setupChannelPointsEvents() {
   // Événement d'erreur Channel Points
   channelPointsManager.on('error', (error) => {
     logger.error(`Erreur Channel Points: ${error.message}`);
+  });
+}
+
+function setupTwitchChatEvents() {
+  if (!twitchOAuth || !twitchOAuth.isConnected()) {
+    return;
+  }
+
+  // Mots-clés pour déclencher des effets
+  const chatEffectKeywords = {
+    'perturbation': 'perturbation',
+    'perturbation quantique': 'perturbation', 
+    '!perturbation': 'perturbation',
+    'confetti': 'tada',
+    '!confetti': 'tada',
+    'flash': 'flash',
+    '!flash': 'flash',
+    'zoom': 'zoom',
+    '!zoom': 'zoom',
+    'shake': 'shake',
+    '!shake': 'shake',
+    'bounce': 'bounce',
+    '!bounce': 'bounce',
+    'pulse': 'pulse',
+    '!pulse': 'pulse'
+  };
+
+  // Écouteur d'événements chat depuis le module Twitch
+  const twitch = require('./server/twitch');
+  
+  twitch.on('chat', (data) => {
+    const message = data.message.toLowerCase().trim();
+    const username = data.username;
+    
+    // Chercher un mot-clé dans le message
+    for (const [keyword, effect] of Object.entries(chatEffectKeywords)) {
+      if (message.includes(keyword)) {
+        logger.log(`Effet chat détecté: ${keyword} → ${effect} par ${username}`);
+        
+        // Déclencher l'effet
+        broadcast({ type: 'effect', value: effect });
+        
+        // Message de confirmation après l'effet
+        setTimeout(() => {
+          broadcast({ 
+            type: 'message', 
+            value: `${username} a déclenché ${keyword} !` 
+          });
+        }, 1000);
+        
+        // Ne déclencher qu'un seul effet par message
+        break;
+      }
+    }
   });
 }
 
