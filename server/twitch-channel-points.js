@@ -1,4 +1,4 @@
-// server/twitch-channel-points.js - Channel Points avec OAuth
+// server/twitch-channel-points.js - Version corrigée avec gestion d'erreurs
 const axios = require('axios');
 const EventEmitter = require('events');
 const logger = require('./logger');
@@ -12,6 +12,8 @@ class TwitchChannelPoints extends EventEmitter {
     this.processedRedemptions = new Set();
     this.rewardEffects = new Map();
     this.lastPollTime = Date.now();
+    this.hasPartnerStatus = false; // Nouveau : tracker le statut
+    this.statusChecked = false;    // Nouveau : éviter les vérifications répétées
     
     // Configuration des effets par défaut
     this.setDefaultEffects();
@@ -20,6 +22,7 @@ class TwitchChannelPoints extends EventEmitter {
   setDefaultEffects() {
     this.rewardEffects.set('confetti', 'tada');
     this.rewardEffects.set('celebration', 'tada');
+    this.rewardEffects.set('perturbation', 'perturbation');
     this.rewardEffects.set('flash', 'flash');
     this.rewardEffects.set('éclair', 'flash');
     this.rewardEffects.set('zoom', 'zoom');
@@ -49,10 +52,10 @@ class TwitchChannelPoints extends EventEmitter {
         throw new Error('Tokens Twitch invalides');
       }
 
-      // Tester la connexion
-      const testResult = await this.testTwitchAPI();
-      if (!testResult.success) {
-        throw new Error(testResult.error);
+      // Vérifier le statut du streamer
+      const statusCheck = await this.checkStreamerStatus();
+      if (!statusCheck.success) {
+        throw new Error(statusCheck.error);
       }
 
       this.isMonitoring = true;
@@ -67,6 +70,52 @@ class TwitchChannelPoints extends EventEmitter {
       logger.error(`Erreur démarrage Channel Points: ${error.message}`);
       this.emit('error', error);
       return false;
+    }
+  }
+
+  // NOUVEAU : Vérifier le statut du streamer
+  async checkStreamerStatus() {
+    if (this.statusChecked) {
+      return { success: this.hasPartnerStatus };
+    }
+
+    try {
+      const tokens = await this.twitchOAuth.ensureValidTokens();
+      const userInfo = this.twitchOAuth.getConnectionInfo();
+      
+      if (!userInfo.connected || !userInfo.user) {
+        return { success: false, error: 'Informations utilisateur non disponibles' };
+      }
+
+      // Vérifier les informations du broadcaster
+      const response = await axios.get(`https://api.twitch.tv/helix/users?id=${userInfo.user.id}`, {
+        headers: {
+          'Client-ID': this.twitchOAuth.clientId,
+          'Authorization': `Bearer ${tokens.access_token}`
+        }
+      });
+
+      if (response.data.data.length > 0) {
+        const user = response.data.data[0];
+        this.hasPartnerStatus = ['affiliate', 'partner'].includes(user.broadcaster_type);
+        this.statusChecked = true;
+
+        if (!this.hasPartnerStatus) {
+          return { 
+            success: false, 
+            error: `Statut insuffisant : "${user.broadcaster_type || 'normal'}". Channel Points nécessite le statut Affilié ou Partenaire.` 
+          };
+        }
+
+        logger.log(`Statut vérifié : ${user.broadcaster_type} - Channel Points disponibles`);
+        return { success: true };
+      }
+
+      return { success: false, error: 'Impossible de vérifier le statut du broadcaster' };
+
+    } catch (error) {
+      logger.error(`Erreur vérification statut : ${error.message}`);
+      return { success: false, error: `Erreur API : ${error.message}` };
     }
   }
 
@@ -88,15 +137,21 @@ class TwitchChannelPoints extends EventEmitter {
   }
 
   startPolling() {
-    // Polling toutes les 5 secondes
+    // Polling toutes les 10 secondes (réduit la fréquence)
     this.pollInterval = setInterval(async () => {
       try {
         await this.checkForNewRedemptions();
       } catch (error) {
-        logger.error(`Erreur polling Channel Points: ${error.message}`);
-        this.emit('error', error);
+        // AMÉLIORÉ : Gestion d'erreur plus granulaire
+        if (error.response?.status === 403) {
+          logger.error('Erreur 403 - Arrêt de la surveillance Channel Points');
+          this.stopMonitoring();
+          this.emit('error', new Error('Permissions insuffisantes pour Channel Points'));
+        } else {
+          logger.error(`Erreur polling Channel Points: ${error.message}`);
+        }
       }
-    }, 5000);
+    }, 10000); // Changé de 5000 à 10000ms
 
     logger.log('Polling Channel Points démarré');
   }
@@ -157,16 +212,32 @@ class TwitchChannelPoints extends EventEmitter {
 
       const broadcasterId = userInfo.user.id;
 
-      // Récupérer les récompenses personnalisées
-      const rewardsResponse = await axios.get(
-        `https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id=${broadcasterId}`,
-        {
-          headers: {
-            'Client-ID': this.twitchOAuth.clientId,
-            'Authorization': `Bearer ${tokens.access_token}`
+      // Récupérer les récompenses personnalisées avec gestion d'erreur
+      let rewardsResponse;
+      try {
+        rewardsResponse = await axios.get(
+          `https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id=${broadcasterId}`,
+          {
+            headers: {
+              'Client-ID': this.twitchOAuth.clientId,
+              'Authorization': `Bearer ${tokens.access_token}`
+            }
           }
+        );
+      } catch (rewardError) {
+        if (rewardError.response?.status === 403) {
+          // AMÉLIORÉ : Log plus informatif et arrêt gracieux
+          logger.error('Erreur 403 - Accès Channel Points refusé. Vérifiez :');
+          logger.error('1. Statut Affilié/Partenaire Twitch');
+          logger.error('2. Client ID correspond à l\'app qui a créé les récompenses');
+          logger.error('3. Permissions OAuth (channel:read:redemptions)');
+          
+          // Arrêter la surveillance pour éviter le spam d'erreurs
+          this.stopMonitoring();
+          this.emit('error', new Error('Accès Channel Points refusé - Surveillance arrêtée'));
         }
-      );
+        throw rewardError;
+      }
 
       // Vérifier les rachats pour chaque récompense
       for (const reward of rewardsResponse.data.data) {
@@ -180,7 +251,8 @@ class TwitchChannelPoints extends EventEmitter {
         logger.error('Token expiré, reconnexion requise');
         this.emit('error', new Error('Token expiré'));
       } else if (error.response?.status === 403) {
-        logger.error('Permissions insuffisantes pour Channel Points');
+        // Déjà géré au-dessus
+        return;
       } else {
         logger.error(`Erreur vérification rachats: ${error.message}`);
       }
@@ -191,7 +263,7 @@ class TwitchChannelPoints extends EventEmitter {
     try {
       // Récupérer les rachats récents (depuis le dernier poll)
       const since = new Date(Date.now() - 60000).toISOString(); // Dernière minute
-      console.log(`broadcasterId: ${broadcasterId}, reward: ${reward.title}, since: ${since}`);
+      
       const redemptionsResponse = await axios.get(
         `https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id=${broadcasterId}&reward_id=${reward.id}&status=FULFILLED&sort=NEWEST&first=20&started_at=${since}`,
         {
@@ -223,8 +295,11 @@ class TwitchChannelPoints extends EventEmitter {
       }
 
     } catch (error) {
-      logger.error(`Erreur rachats pour ${reward.title}: ${error.message}`);
-      logger.error(`Détails: ${JSON.stringify(error.response?.data || {})}`);
+      // AMÉLIORÉ : Ne pas logger l'erreur 403 répétitivement
+      if (error.response?.status !== 403) {
+        logger.error(`Erreur rachats pour ${reward.title}: ${error.message}`);
+      }
+      // Ne plus logger les détails JSON pour réduire le spam
     }
   }
 
@@ -304,6 +379,13 @@ class TwitchChannelPoints extends EventEmitter {
         return [];
       }
 
+      // Vérifier d'abord le statut
+      const statusCheck = await this.checkStreamerStatus();
+      if (!statusCheck.success) {
+        logger.error(`Impossible de récupérer les récompenses: ${statusCheck.error}`);
+        return [];
+      }
+
       const broadcasterId = userInfo.user.id;
 
       const response = await axios.get(
@@ -327,6 +409,10 @@ class TwitchChannelPoints extends EventEmitter {
       }));
 
     } catch (error) {
+      if (error.response?.status === 403) {
+        logger.error('Accès aux récompenses Channel Points refusé');
+        return [];
+      }
       logger.error(`Erreur récupération récompenses: ${error.message}`);
       return [];
     }
@@ -337,7 +423,9 @@ class TwitchChannelPoints extends EventEmitter {
       isMonitoring: this.isMonitoring,
       rewardEffectsCount: this.rewardEffects.size,
       eventSubscriptionsCount: this.processedRedemptions.size,
-      lastEventId: this.lastPollTime
+      lastEventId: this.lastPollTime,
+      hasPartnerStatus: this.hasPartnerStatus,
+      statusChecked: this.statusChecked
     };
   }
 
