@@ -6,6 +6,7 @@
   <title>Admin Stream 24h</title>
   <link rel="stylesheet" href="css/admin.css">
   <link rel="stylesheet" href="css/twitch-status.css">
+  <link rel="stylesheet" href="css/channel-points.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -71,6 +72,9 @@
       <div class="tabs">
         <div class="tab" data-tab="twitch">
           <i class="fas fa-broadcast-tower"></i> Twitch
+        </div>
+        <div class="tab" data-tab="channel-points">
+          <i class="fas fa-gem"></i> Channel Points
         </div>
         <div class="tab active" data-tab="cagnotte">
           <i class="fas fa-coins"></i> Cagnotte
@@ -160,6 +164,13 @@
           <h2>Connection Status</h2>
           <p>Twitch: <span id="twitch-status">Loading...</span></p>
           <p>Streamlabs: <span id="streamlabs-status">Loading...</span></p>
+        </div>
+      </div>
+
+      <!-- NOUVEAU: Tab Channel Points -->
+      <div class="tab-content" id="channel-points-tab">
+        <div id="channel-points-container">
+          <!-- Contenu généré par ChannelPointsAdmin -->
         </div>
       </div>
 
@@ -426,11 +437,15 @@
   <!-- Scripts -->
   <script src="js/admin.js"></script>
   <script src="js/twitch-status.js"></script>
+  <script src="js/channel-points-admin.js"></script>
   <script>
     // Initialize the Twitch status manager when the page loads
     document.addEventListener('DOMContentLoaded', () => {
       // Create the Twitch status manager
       const twitchManager = new TwitchStatusManager('twitch-status-panel');
+
+      // Créer le gestionnaire Channel Points
+      channelPointsAdmin = new ChannelPointsAdmin();
 
       // Handle tab visibility
       const tabs = document.querySelectorAll('.tab');
@@ -441,6 +456,16 @@
             twitchManager.setVisible(true);
           } else {
             twitchManager.setVisible(false);
+          }
+          
+          if (tabId === 'channel-points') {
+            // Actualiser les données quand l'onglet devient visible
+            setTimeout(() => {
+              if (channelPointsAdmin) {
+                channelPointsAdmin.loadStatus();
+                channelPointsAdmin.loadRewards();
+              }
+            }, 100);
           }
         });
       });
@@ -463,6 +488,29 @@
 
       // Call the function to check connection status when the page loads
       checkConnectionStatus();
+
+      // Écouter les événements WebSocket pour les Channel Points
+      if (typeof ws !== 'undefined' && ws) {
+        // Ajouter un listener pour les événements Channel Points
+        const originalOnMessage = ws.onmessage;
+        ws.onmessage = (event) => {
+          // Appeler le handler original
+          if (originalOnMessage) {
+            originalOnMessage(event);
+          }
+          
+          try {
+            const data = JSON.parse(event.data);
+            
+            // Gérer les événements Channel Points
+            if (data.type === 'channel_points_event' && channelPointsAdmin) {
+              channelPointsAdmin.handleChannelPointsEvent(data.data);
+            }
+          } catch (e) {
+            // Ignorer les erreurs de parsing
+          }
+        };
+      }
     });
   </script>
 </body>

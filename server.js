@@ -1,4 +1,4 @@
-// server.js - Point d'entrée serveur unifié (Express + WebSocket)
+// server.js - Point d'entrée serveur unifié (Express + WebSocket) avec Channel Points
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -166,7 +166,243 @@ twitch.initialize().then(success => {
   logger.error(`Erreur d'initialisation Twitch: ${error.message}`);
 });
 
-// ======= ROUTES API =======
+// ======= CHANNEL POINTS API ROUTES =======
+
+// GET - Statut des Channel Points
+app.get('/api/channel-points/status', (req, res) => {
+  try {
+    const channelPointsManager = twitch.getChannelPointsManager();
+    
+    if (!channelPointsManager) {
+      return res.json({
+        enabled: false,
+        monitoring: false,
+        message: 'Channel Points non initialisé'
+      });
+    }
+    
+    const status = channelPointsManager.getStatus();
+    const config = twitch.getConfig();
+    
+    res.json({
+      enabled: config.enabled,
+      monitoring: status.isMonitoring,
+      rewardEffectsCount: status.rewardEffectsCount,
+      eventSubscriptionsCount: status.eventSubscriptionsCount,
+      lastEventId: status.lastEventId
+    });
+  } catch (error) {
+    logger.error(`Erreur statut Channel Points: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST - Démarrer/Arrêter la surveillance des Channel Points
+app.post('/api/channel-points/monitoring/:action', async (req, res) => {
+  try {
+    const { action } = req.params;
+    const channelPointsManager = twitch.getChannelPointsManager();
+    
+    if (!channelPointsManager) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Channel Points non initialisé' 
+      });
+    }
+    
+    let result = false;
+    
+    if (action === 'start') {
+      result = await channelPointsManager.startMonitoring();
+    } else if (action === 'stop') {
+      channelPointsManager.stopMonitoring();
+      result = true;
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Action invalide. Utilisez start ou stop.' 
+      });
+    }
+    
+    const status = channelPointsManager.getStatus();
+    
+    res.json({
+      success: result,
+      monitoring: status.isMonitoring,
+      message: result ? 
+        `Surveillance des Channel Points ${action === 'start' ? 'démarrée' : 'arrêtée'}` :
+        `Impossible de ${action === 'start' ? 'démarrer' : 'arrêter'} la surveillance`
+    });
+    
+    logger.log(`Channel Points monitoring ${action}: ${result ? 'succès' : 'échec'}`);
+    
+  } catch (error) {
+    logger.error(`Erreur ${req.params.action} monitoring Channel Points: ${error.message}`);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// GET - Liste des récompenses disponibles
+app.get('/api/channel-points/rewards', async (req, res) => {
+  try {
+    const channelPointsManager = twitch.getChannelPointsManager();
+    
+    if (!channelPointsManager) {
+      return res.json([]);
+    }
+    
+    const rewards = await channelPointsManager.getAvailableRewards();
+    
+    res.json({
+      success: true,
+      rewards: rewards,
+      count: rewards.length
+    });
+    
+  } catch (error) {
+    logger.error(`Erreur récupération récompenses: ${error.message}`);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      rewards: []
+    });
+  }
+});
+
+// POST - Configurer les mappings récompenses -> effets
+app.post('/api/channel-points/configure', (req, res) => {
+  try {
+    const { rewardEffects } = req.body;
+    const channelPointsManager = twitch.getChannelPointsManager();
+    
+    if (!channelPointsManager) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Channel Points non initialisé' 
+      });
+    }
+    
+    if (!rewardEffects || typeof rewardEffects !== 'object') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Configuration des effets invalide' 
+      });
+    }
+    
+    // Valider les effets
+    const validEffects = ['tada', 'flash', 'zoom', 'shake', 'bounce', 'pulse'];
+    const invalidEffects = Object.values(rewardEffects).filter(effect => !validEffects.includes(effect));
+    
+    if (invalidEffects.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Effets invalides: ${invalidEffects.join(', ')}. Effets valides: ${validEffects.join(', ')}` 
+      });
+    }
+    
+    // Configurer les mappings
+    channelPointsManager.configureRewardEffects(rewardEffects);
+    
+    res.json({
+      success: true,
+      message: 'Configuration des effets Channel Points mise à jour',
+      mappingsCount: Object.keys(rewardEffects).length
+    });
+    
+    logger.log(`Configuration Channel Points mise à jour: ${Object.keys(rewardEffects).length} mappings`);
+    
+  } catch (error) {
+    logger.error(`Erreur configuration Channel Points: ${error.message}`);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// POST - Test manuel d'un effet Channel Points
+app.post('/api/channel-points/test-effect', async (req, res) => {
+  try {
+    const { effectType, userName = 'TestUser', rewardTitle = 'Test Reward', cost = 100 } = req.body;
+    
+    if (!effectType) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Type d\'effet requis' 
+      });
+    }
+    
+    const validEffects = ['tada', 'flash', 'zoom', 'shake', 'bounce', 'pulse'];
+    if (!validEffects.includes(effectType)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Effet invalide. Effets valides: ${validEffects.join(', ')}` 
+      });
+    }
+    
+    // Déclencher l'effet via l'API existante
+    broadcast({ type: 'effect', value: effectType });
+    
+    // Envoyer un message de test
+    setTimeout(() => {
+      broadcast({ 
+        type: 'message', 
+        value: `🧪 TEST: ${userName} a utilisé "${rewardTitle}" (${cost} points) !` 
+      });
+    }, 1000);
+    
+    res.json({
+      success: true,
+      message: `Effet de test "${effectType}" déclenché`,
+      effect: effectType,
+      testData: { userName, rewardTitle, cost }
+    });
+    
+    logger.log(`Test effet Channel Points: ${effectType} pour ${userName}`);
+    
+  } catch (error) {
+    logger.error(`Erreur test effet Channel Points: ${error.message}`);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// POST - Nettoyer les anciens événements
+app.post('/api/channel-points/cleanup', (req, res) => {
+  try {
+    const channelPointsManager = twitch.getChannelPointsManager();
+    
+    if (!channelPointsManager) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Channel Points non initialisé' 
+      });
+    }
+    
+    channelPointsManager.cleanupOldEvents();
+    
+    res.json({
+      success: true,
+      message: 'Nettoyage des anciens événements effectué'
+    });
+    
+    logger.log('Nettoyage manuel des événements Channel Points');
+    
+  } catch (error) {
+    logger.error(`Erreur nettoyage Channel Points: ${error.message}`);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// ======= ROUTES API STANDARD =======
 
 // GET planning
 app.get('/api/planning', (req, res) => {
@@ -315,6 +551,8 @@ app.get('/api/logs', (req, res) => {
   }
 });
 
+// ======= CONFIGURATION DES ÉVÉNEMENTS TWITCH =======
+
 // Configuration des événements Twitch
 twitch.on('donation', (data) => {
   // Déclencher un effet et un message
@@ -358,13 +596,51 @@ twitch.on('cheer', (data) => {
   logger.activity('twitch_cheer', data);
 });
 
+// NOUVEAU: Gestionnaire pour les Channel Points
+twitch.on('channel_points', (data) => {
+  // L'effet est déjà déclenché par le TwitchChannelPoints manager
+  // Ici on peut ajouter des logs ou d'autres traitements
+  logger.activity('twitch_channel_points', {
+    rewardTitle: data.reward.title,
+    userName: data.redemption.userName,
+    cost: data.reward.cost,
+    effect: data.effect
+  });
+  
+  // Diffuser l'événement aux clients WebSocket pour l'interface admin
+  broadcast({ 
+    type: 'channel_points_event', 
+    data: {
+      reward: data.reward.title,
+      user: data.redemption.userName,
+      cost: data.reward.cost,
+      effect: data.effect,
+      timestamp: data.redemption.redeemedAt
+    }
+  });
+});
+
+twitch.on('twitch_channel_points', (data) => {
+  // Événement secondaire pour traitement supplémentaire si nécessaire
+  logger.log(`Événement Channel Points traité: ${data.reward.title} -> ${data.effect}`);
+});
+
 // Route de test pour vérifier que le serveur fonctionne
 app.get('/api/health', (req, res) => {
+  const channelPointsManager = twitch.getChannelPointsManager();
+  
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
     connections: connections.size,
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    twitch: {
+      enabled: twitch.getConfig().enabled,
+      channelPoints: {
+        initialized: !!channelPointsManager,
+        monitoring: channelPointsManager ? channelPointsManager.getStatus().isMonitoring : false
+      }
+    }
   });
 });
 
@@ -387,4 +663,5 @@ server.listen(PORT, () => {
   logger.log(`📺 Overlay OBS: http://localhost:${PORT}/overlay/`);
   logger.log(`📊 Status OBS: http://localhost:${PORT}/status.html`);
   logger.log(`💬 WebSocket actif avec ${connections.size} connexions`);
+  logger.log(`💎 Channel Points Twitch: ${twitch.getConfig().enabled ? 'Configuré' : 'Désactivé'}`);
 });
