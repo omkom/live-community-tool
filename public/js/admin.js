@@ -803,38 +803,55 @@ function loadTwitchConfig() {
 
 // Mise à jour du formulaire Twitch
 function updateTwitchForm() {
-  document.getElementById('twitch-enabled').checked = twitchConfig.enabled;
-  document.getElementById('twitch_client_id').value = twitchConfig.twitch?.clientId || '';
-  document.getElementById('twitch_client_secret').value = twitchConfig.twitch?.clientSecret || '';
-  document.getElementById('twitch_channel').value = twitchConfig.twitch?.channelName || '';
-  document.getElementById('twitch_username').value = twitchConfig.twitch?.username || '';
-  document.getElementById('twitch_oauth_token').value = twitchConfig.twitch?.oauthToken || '';
-  
-  // Mettre à jour l'indicateur de statut
+  const twitchEnabledEl = document.getElementById('twitch-enabled');
+  if (!twitchEnabledEl) return;
+  twitchEnabledEl.checked = twitchConfig.enabled;
+
+  const clientIdEl = document.getElementById('twitch_client_id');
+  if (clientIdEl) clientIdEl.value = twitchConfig.twitch?.clientId || '';
+  const clientSecretEl = document.getElementById('twitch_client_secret');
+  if (clientSecretEl) clientSecretEl.value = twitchConfig.twitch?.clientSecret || '';
+  const channelEl = document.getElementById('twitch_channel');
+  if (channelEl) channelEl.value = twitchConfig.twitch?.channelName || '';
+  const usernameEl = document.getElementById('twitch_username');
+  if (usernameEl) usernameEl.value = twitchConfig.twitch?.username || '';
+  const oauthTokenEl = document.getElementById('twitch_oauth_token');
+  if (oauthTokenEl) oauthTokenEl.value = twitchConfig.twitch?.oauthToken || '';
+
+  // Mettre à jour l'indicateur de statut (config)
   const statusBadge = document.getElementById('twitch-status');
-  if (twitchConfig.enabled) {
-    statusBadge.textContent = 'Activé';
-    statusBadge.classList.add('connected');
-  } else {
-    statusBadge.textContent = 'Désactivé';
-    statusBadge.classList.remove('connected');
+  if (statusBadge) {
+    if (twitchConfig.enabled) {
+      statusBadge.textContent = 'Activé';
+      statusBadge.classList.add('connected');
+    } else {
+      statusBadge.textContent = 'Désactivé';
+      statusBadge.classList.remove('connected');
+    }
   }
 }
 
 // Mise à jour du formulaire Streamlabs
 function updateStreamlabsForm() {
-  document.getElementById('streamlabs-enabled').checked = twitchConfig.enabled; // Même activation que Twitch
-  document.getElementById('streamlabs_socket_token').value = twitchConfig.streamlabs?.socketToken || '';
-  document.getElementById('streamlabs_access_token').value = twitchConfig.streamlabs?.accessToken || '';
-  
-  // Mettre à jour l'indicateur de statut
+  const streamlabsEnabledEl = document.getElementById('streamlabs-enabled');
+  if (!streamlabsEnabledEl) return;
+  streamlabsEnabledEl.checked = twitchConfig.enabled;
+
+  const socketTokenEl = document.getElementById('streamlabs_socket_token');
+  if (socketTokenEl) socketTokenEl.value = twitchConfig.streamlabs?.socketToken || '';
+  const accessTokenEl = document.getElementById('streamlabs_access_token');
+  if (accessTokenEl) accessTokenEl.value = twitchConfig.streamlabs?.accessToken || '';
+
+  // Mettre à jour l'indicateur de statut (config)
   const statusBadge = document.getElementById('streamlabs-status');
-  if (twitchConfig.enabled && twitchConfig.streamlabs?.socketToken) {
-    statusBadge.textContent = 'Activé';
-    statusBadge.classList.add('connected');
-  } else {
-    statusBadge.textContent = 'Désactivé';
-    statusBadge.classList.remove('connected');
+  if (statusBadge) {
+    if (twitchConfig.enabled && twitchConfig.streamlabs?.socketToken) {
+      statusBadge.textContent = 'Activé';
+      statusBadge.classList.add('connected');
+    } else {
+      statusBadge.textContent = 'Désactivé';
+      statusBadge.classList.remove('connected');
+    }
   }
 }
 
@@ -946,12 +963,18 @@ function loadEventsConfig() {
     eventsConfig = { ...eventsConfig, ...JSON.parse(savedConfig) };
   }
   
-  // Mise à jour des formulaires
-  document.getElementById('event-donation-effect').value = eventsConfig.donationEffect;
-  document.getElementById('event-sub-effect').value = eventsConfig.subEffect;
-  document.getElementById('event-cheer-effect').value = eventsConfig.cheerEffect;
-  document.getElementById('display-messages').checked = eventsConfig.displayMessages;
-  document.getElementById('auto-update-stats').checked = eventsConfig.autoUpdateStats;
+  // Mise à jour des formulaires (quitter si non présent)
+  const donationEl = document.getElementById('event-donation-effect');
+  if (!donationEl) return;
+  donationEl.value = eventsConfig.donationEffect;
+  const subEl = document.getElementById('event-sub-effect');
+  if (subEl) subEl.value = eventsConfig.subEffect;
+  const cheerEl = document.getElementById('event-cheer-effect');
+  if (cheerEl) cheerEl.value = eventsConfig.cheerEffect;
+  const displayMsgsEl = document.getElementById('display-messages');
+  if (displayMsgsEl) displayMsgsEl.checked = eventsConfig.displayMessages;
+  const autoUpdateEl = document.getElementById('auto-update-stats');
+  if (autoUpdateEl) autoUpdateEl.checked = eventsConfig.autoUpdateStats;
 }
 
 // Sauvegarde de la configuration des événements

@@ -97,6 +97,13 @@ class StreamServer {
   }
 
   setupRoutes() {
+    // Routes OAuth Twitch (mount unconditionally so status/connect endpoints always exist)
+    const TwitchOAuth = require('./server/twitch-oauth');
+    const oauthService = this.serviceManager.getTwitchOAuth();
+    const oauthHandler = oauthService && typeof oauthService.setupRoutes === 'function'
+      ? oauthService
+      : new TwitchOAuth();
+    oauthHandler.setupRoutes(this.app);
     // Routes du RouterManager
     this.app.use(this.routerManager.getRouter());
     
