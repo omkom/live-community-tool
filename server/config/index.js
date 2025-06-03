@@ -67,8 +67,9 @@ class ConfigManager {
       },
       
       security: {
+        adminUser: process.env.ADMIN_USER || 'admin',
         adminPassword: process.env.ADMIN_PASSWORD,
-        rateLimitWindow: 15 * 60 * 1000, // 15 minutes
+        rateLimitWindow: 15 * 60 * 1000,
         rateLimitMax: 100
       }
     };

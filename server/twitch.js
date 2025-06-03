@@ -373,7 +373,9 @@ async function updateDonationStats(amount) {
     
     // Notifier les clients connectés via API
     try {
-      const response = await axios.post('http://localhost:3000/api/status', status);
+      const base = `${process.env.HOST || 'localhost'}:${process.env.PORT || 3000}`;
+      const url = `http://${base}/api/status`;
+      const response = await axios.post(url, status);
       logger.log(`Mise à jour des statistiques de donations: +${amount}€ (Total: ${status.donation_total}€)`);
       return response.data;
     } catch (apiError) {
@@ -421,7 +423,9 @@ async function updateSubscriptionStats(count, fromApi = false) {
     // Notifier les clients connectés via API (uniquement si pas appelé depuis l'API)
     if (!fromApi) {
       try {
-        const response = await axios.post('http://localhost:3000/api/status', status);
+        const base = `${process.env.HOST || 'localhost'}:${process.env.PORT || 3000}`;
+        const url = `http://${base}/api/status`;
+        const response = await axios.post(url, status);
         logger.log(`Mise à jour des statistiques d'abonnements: +${count} (Total: ${status.subs_total})`);
         return response.data;
       } catch (apiError) {

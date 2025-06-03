@@ -53,6 +53,35 @@ class TwitchChannelPoints extends EventEmitter {
     this.rewardEffects.set('pulse', 'pulse');
   }
 
+  async testTwitchAPI() {
+    try {
+      const tokens = await this.twitchOAuth.ensureValidTokens();
+      if (!tokens) {
+        return { success: false, error: 'Tokens invalides' };
+      }
+      const userInfo = this.twitchOAuth.getConnectionInfo();
+      if (!userInfo.connected || !userInfo.user) {
+        return { success: false, error: 'Informations utilisateur non disponibles' };
+      }
+      const response = await axios.get(
+        `https://api.twitch.tv/helix/users?id=${userInfo.user.id}`,
+        {
+          headers: {
+            'Client-ID': this.twitchOAuth.clientId,
+            Authorization: `Bearer ${tokens.access_token}`
+          }
+        }
+      );
+      const data = response.data.data;
+      if (data && data.length > 0) {
+        return { success: true, user: data[0] };
+      }
+      return { success: false, error: 'Utilisateur introuvable' };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
   async startMonitoring() {
     if (this.isMonitoring) {
       logger.log('Surveillance Channel Points déjà active');

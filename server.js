@@ -62,14 +62,38 @@ class StreamServer {
   setupMiddleware() {
     this.app.use(express.static(this.config.get('paths.publicDir')));
     this.app.use(express.json());
-    
-    // Middleware de sécurité basique
+
     this.app.use((req, res, next) => {
       res.header('X-Content-Type-Options', 'nosniff');
       res.header('X-Frame-Options', 'DENY');
       res.header('X-XSS-Protection', '1; mode=block');
       next();
     });
+
+    const adminUser = this.config.get('security.adminUser');
+    const adminPassword = this.config.get('security.adminPassword');
+    if (adminPassword) {
+      this.app.use((req, res, next) => {
+        const isProtected =
+          req.path.startsWith('/admin.html') ||
+          req.path.startsWith('/api/') ||
+          req.path.startsWith('/auth/twitch');
+        if (!isProtected) {
+          return next();
+        }
+        const auth = req.headers.authorization && req.headers.authorization.split(' ');
+        if (!auth || auth[0] !== 'Basic' || auth.length !== 2) {
+          res.set('WWW-Authenticate', 'Basic realm="Admin area"');
+          return res.status(401).send('Authentication required.');
+        }
+        const [user, pass] = Buffer.from(auth[1], 'base64').toString().split(':');
+        if (user === adminUser && pass === adminPassword) {
+          return next();
+        }
+        res.set('WWW-Authenticate', 'Basic realm="Admin area"');
+        return res.status(401).send('Authentication required.');
+      });
+    }
   }
 
   setupRoutes() {

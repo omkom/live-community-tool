@@ -112,11 +112,7 @@ class MiddlewareManager {
   cors() {
     return (req, res, next) => {
       const origin = req.headers.origin;
-      const allowedOrigins = [
-        this.config.getServerUrl(),
-        'http://localhost:3000',
-        'http://localhost:3001'
-      ];
+      const allowedOrigins = [this.config.getServerUrl()];
       
       if (allowedOrigins.includes(origin)) {
         res.header('Access-Control-Allow-Origin', origin);
