@@ -14,6 +14,8 @@ const logger = require('./server/logger');
 const validate = require('./server/validator');
 const TwitchOAuth = require('./server/twitch-oauth');
 const TwitchChannelPoints = require('./server/twitch-channel-points');
+const axios = require('axios');
+const { setupChannelPointsRoutes } = require('./server/routes/channel-points');
 
 const app = express();
 const server = http.createServer(app);
@@ -226,24 +228,61 @@ function initializeChannelPoints() {
 function setupChannelPointsEvents() {
   if (!channelPointsManager) return;
 
-  // Événement de rachat Channel Points
+  // Événement de rachat Channel Points avec support des effets quantiques
   channelPointsManager.on('redemption', (data) => {
     logger.log(`💎 Channel Points: ${data.reward.title} par ${data.user.display_name} (${data.reward.cost}pts)`);
     
-    // Déclencher l'effet correspondant immédiatement
+    // Déclencher l'effet correspondant avec données enrichies
     if (data.effect) {
-      logger.log(`🎯 Déclenchement effet: ${data.effect}`);
-      broadcast({ type: 'effect', value: data.effect });
+      logger.log(`🔮 Déclenchement effet: ${data.effect}`);
       
-      // Message de confirmation après l'effet
+      // Préparer les données pour les effets quantiques
+      const effectData = {
+        userInput: data.redemption.user_input || null,
+        userName: data.user.display_name,
+        rewardTitle: data.reward.title,
+        cost: data.reward.cost,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Diffuser l'effet avec données
+      broadcast({ 
+        type: 'effect', 
+        value: data.effect,
+        data: effectData 
+      });
+      
+      // Message de confirmation adapté à l'effet
       setTimeout(() => {
-        const message = `${data.user.display_name} a utilisé "${data.reward.title}" !`;
-        broadcast({ type: 'message', value: message });
-        logger.log(`💬 Message envoyé: ${message}`);
+        let confirmMessage = `${data.user.display_name} a utilisé "${data.reward.title}"`;
+        
+        // Messages spéciaux pour les effets quantiques
+        switch (data.effect) {
+          case 'quantum_collapse':
+            confirmMessage += ' - Réponse instantanée requise !';
+            break;
+          case 'temporal_rewind':
+            confirmMessage += ' - Répète ta dernière phrase !';
+            break;
+          case 'cognitive_collapse':
+            confirmMessage += ' - Explique comme à un enfant !';
+            break;
+          case 'butterfly_effect':
+            confirmMessage += ' - Effet Papillon activé pour 5 minutes !';
+            break;
+          case 'quantum_consciousness':
+            confirmMessage += ' - Citation mystérieuse révélée !';
+            break;
+          default:
+            confirmMessage += ' !';
+        }
+        
+        broadcast({ type: 'message', value: confirmMessage });
+        logger.log(`💬 Message envoyé: ${confirmMessage}`);
       }, 1500);
     }
     
-    // Diffuser l'événement aux clients admin
+    // Diffuser l'événement aux clients admin avec plus de détails
     broadcast({ 
       type: 'channel_points_event', 
       data: {
@@ -251,27 +290,37 @@ function setupChannelPointsEvents() {
         user: data.user.display_name,
         cost: data.reward.cost,
         effect: data.effect,
-        timestamp: new Date().toISOString()
+        user_input: data.redemption.user_input,
+        timestamp: new Date().toISOString(),
+        event_type: 'live'
       }
     });
     
-    // Log détaillé pour debug
+    // Log détaillé pour debug et analytics
     logger.activity('channel_points_redemption', {
       reward_id: data.reward.id,
       reward_title: data.reward.title,
       user_id: data.user.id,
       user_name: data.user.display_name,
       cost: data.reward.cost,
-      effect: data.effect
+      effect: data.effect,
+      user_input: data.redemption.user_input,
+      redeemed_at: data.redemption.redeemed_at
     });
   });
 
-  // Événements de monitoring
+  // Événements de monitoring avec plus de détails
   channelPointsManager.on('monitoring:started', () => {
     logger.log('🎯 Surveillance Channel Points démarrée');
+    const status = channelPointsManager.getStatus();
     broadcast({ 
       type: 'channel_points_status', 
-      data: { monitoring: true }
+      data: { 
+        monitoring: true,
+        partner_status: status.hasPartnerStatus,
+        effects_count: status.rewardEffectsCount,
+        timestamp: new Date().toISOString()
+      }
     });
   });
 
@@ -279,25 +328,35 @@ function setupChannelPointsEvents() {
     logger.log('🎯 Surveillance Channel Points arrêtée');
     broadcast({ 
       type: 'channel_points_status', 
-      data: { monitoring: false }
-    });
-  });
-
-  // Événement d'erreur
-  channelPointsManager.on('error', (error) => {
-    logger.error(`Erreur Channel Points: ${error.message}`);
-    
-    // Informer l'admin des erreurs
-    broadcast({ 
-      type: 'channel_points_error', 
       data: { 
-        error: error.message,
+        monitoring: false,
         timestamp: new Date().toISOString()
       }
     });
   });
 
-  logger.log('✅ Événements Channel Points configurés');
+  // Gestion des erreurs avec notification admin
+  channelPointsManager.on('error', (error) => {
+    logger.error(`Erreur Channel Points: ${error.message}`);
+    
+    // Déterminer le type d'erreur
+    let errorType = 'general';
+    if (error.message.includes('403')) errorType = 'permissions';
+    if (error.message.includes('401')) errorType = 'authentication';
+    if (error.message.includes('Statut insuffisant')) errorType = 'partner_status';
+    
+    broadcast({ 
+      type: 'channel_points_error', 
+      data: { 
+        error: error.message,
+        error_type: errorType,
+        timestamp: new Date().toISOString(),
+        requires_action: errorType !== 'general'
+      }
+    });
+  });
+
+  logger.log('✅ Événements Channel Points quantiques configurés');
 }
 
 function setupTwitchChatEvents() {
@@ -367,11 +426,38 @@ function reinitializeServicesAfterOAuth() {
       channelPointsManager = null;
     }
     
+    // Réinitialiser Chat
+    if (twitchChat) {
+      twitchChat = null;
+    }
+    
     const channelPointsInit = initializeChannelPoints();
     const chatInit = initializeTwitchChat();
     
     if (channelPointsInit) {
       logger.log('✅ Channel Points réinitialisé');
+      
+      // Auto-configuration des effets
+      setTimeout(async () => {
+        try {
+          const rewards = await channelPointsManager.getAvailableRewards();
+          if (rewards.length > 0) {
+            const autoMappings = {};
+            rewards.forEach(reward => {
+              if (reward.suggestedEffect && reward.suggestedEffect !== 'pulse') {
+                autoMappings[reward.title.toLowerCase()] = reward.suggestedEffect;
+              }
+            });
+            
+            if (Object.keys(autoMappings).length > 0) {
+              channelPointsManager.configureRewardEffects(autoMappings);
+              logger.log(`🎯 Auto-configuration: ${Object.keys(autoMappings).length} effets`);
+            }
+          }
+        } catch (error) {
+          logger.error(`Erreur auto-configuration: ${error.message}`);
+        }
+      }, 3000);
     }
     
     if (chatInit) {
@@ -379,12 +465,242 @@ function reinitializeServicesAfterOAuth() {
       logger.log('✅ Chat Twitch réinitialisé');
     }
     
+    // Notifier les clients admin
+    broadcast({ 
+      type: 'services_reinitialized', 
+      data: {
+        channel_points: channelPointsInit,
+        chat: chatInit,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
     return true;
   } catch (error) {
     logger.error(`Erreur réinitialisation services: ${error.message}`);
     return false;
   }
 }
+
+// ======= AJOUTER APRÈS L'INITIALISATION D'OAUTH =======
+// Global function pour réinitialisation depuis OAuth
+global.reinitializeServicesAfterOAuth = reinitializeServicesAfterOAuth;
+
+// Configurer les routes Channel Points complètes
+if (twitchOAuth && channelPointsManager) {
+  setupChannelPointsRoutes(app, twitchOAuth, channelPointsManager, broadcast);
+}
+
+// ======= AJOUTER CETTE ROUTE DE CONFIGURATION RAPIDE =======
+app.post('/api/channel-points/quick-setup', async (req, res) => {
+  try {
+    if (!twitchOAuth?.isConnected()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Connexion Twitch OAuth requise',
+        step: 'oauth'
+      });
+    }
+
+    // Étape 1: Initialiser Channel Points si nécessaire
+    if (!channelPointsManager) {
+      const initialized = initializeChannelPoints();
+      if (!initialized) {
+        return res.status(400).json({
+          success: false,
+          error: 'Impossible d\'initialiser Channel Points',
+          step: 'initialization'
+        });
+      }
+    }
+
+    // Étape 2: Vérifier le statut broadcaster
+    const statusCheck = await channelPointsManager.checkStreamerStatus();
+    if (!statusCheck.success) {
+      return res.status(400).json({
+        success: false,
+        error: statusCheck.error,
+        step: 'status_check'
+      });
+    }
+
+    // Étape 3: Récupérer et auto-configurer les récompenses
+    const rewards = await channelPointsManager.getAvailableRewards();
+    const autoMappings = {};
+    let configuredCount = 0;
+
+    rewards.forEach(reward => {
+      if (reward.suggestedEffect && reward.suggestedEffect !== 'pulse') {
+        autoMappings[reward.title.toLowerCase()] = reward.suggestedEffect;
+        configuredCount++;
+      }
+    });
+
+    if (configuredCount > 0) {
+      channelPointsManager.configureRewardEffects(autoMappings);
+    }
+
+    // Étape 4: Démarrer la surveillance
+    const monitoringStarted = await channelPointsManager.startMonitoring();
+
+    res.json({
+      success: true,
+      message: 'Configuration rapide terminée',
+      setup: {
+        oauth_connected: true,
+        channel_points_initialized: true,
+        partner_status: statusCheck.success,
+        rewards_found: rewards.length,
+        effects_configured: configuredCount,
+        monitoring_started: monitoringStarted
+      },
+      next_steps: monitoringStarted ? 
+        ['Testez un effet depuis l\'admin', 'Créez plus de récompenses si besoin'] :
+        ['Vérifiez votre statut Twitch', 'Consultez les logs pour plus d\'infos']
+    });
+
+    logger.log(`Configuration rapide Channel Points: ${configuredCount} effets sur ${rewards.length} récompenses`);
+
+  } catch (error) {
+    logger.error(`Erreur configuration rapide: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      step: 'execution'
+    });
+  }
+});
+
+// ======= ROUTE POUR CRÉER LES RÉCOMPENSES PAR DÉFAUT =======
+app.post('/api/channel-points/create-default-rewards', async (req, res) => {
+  try {
+    if (!twitchOAuth?.isConnected()) {
+      return res.status(400).json({
+        success: false,
+        error: 'OAuth Twitch requis'
+      });
+    }
+
+    const tokens = await twitchOAuth.ensureValidTokens();
+    const userInfo = twitchOAuth.getConnectionInfo();
+    
+    const defaultRewards = [
+      {
+        title: '🌀 Perturbation Quantique',
+        cost: 500,
+        prompt: 'Déclenche une perturbation visuelle mystérieuse',
+        background_color: 'BLUE'
+      },
+      {
+        title: '⚡ Effondrement Fonction d\'Onde',
+        cost: 750,
+        prompt: 'Demande une réponse instantanée du streamer',
+        background_color: 'PURPLE'
+      },
+      {
+        title: '🔄 Recul Temporel Localisé',
+        cost: 1000,
+        prompt: 'Le streamer doit répéter sa dernière phrase',
+        background_color: 'GREEN'
+      },
+      {
+        title: '🧠 Collapse Cognitif',
+        cost: 1500,
+        prompt: 'Expliquer un concept complexe comme à un enfant',
+        background_color: 'PINK'
+      },
+      {
+        title: '🦋 Effet Papillon',
+        cost: 1200,
+        prompt: 'Mutations visuelles pendant 5 minutes',
+        background_color: 'ORANGE'
+      }
+    ];
+
+    const createdRewards = [];
+    const errors = [];
+
+    for (const reward of defaultRewards) {
+      try {
+        const response = await axios.post(
+          `https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id=${userInfo.user.id}`,
+          {
+            ...reward,
+            is_enabled: true,
+            is_user_input_required: false
+          },
+          {
+            headers: {
+              'Client-ID': twitchOAuth.clientId,
+              'Authorization': `Bearer ${tokens.access_token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        createdRewards.push(response.data.data[0]);
+        logger.log(`Récompense créée: ${reward.title}`);
+
+      } catch (error) {
+        errors.push({
+          reward: reward.title,
+          error: error.response?.data?.message || error.message
+        });
+      }
+    }
+
+    res.json({
+      success: createdRewards.length > 0,
+      message: `${createdRewards.length} récompenses créées`,
+      created: createdRewards.length,
+      total: defaultRewards.length,
+      errors: errors
+    });
+
+  } catch (error) {
+    logger.error(`Erreur création récompenses par défaut: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// ======= WEBHOOKS POUR INTEGRATION EXTERNE =======
+app.post('/webhooks/channel-points', (req, res) => {
+  try {
+    const { reward, user, effect } = req.body;
+    
+    if (!reward || !user || !effect) {
+      return res.status(400).json({ error: 'Données manquantes' });
+    }
+
+    // Simulation d'événement externe
+    const eventData = {
+      reward: { title: reward, cost: 0 },
+      user: { display_name: user },
+      effect: effect,
+      redemption: { user_input: null },
+      timestamp: new Date().toISOString()
+    };
+
+    // Déclencher l'effet
+    broadcast({ type: 'effect', value: effect });
+    
+    setTimeout(() => {
+      broadcast({ 
+        type: 'message', 
+        value: `🌐 WEBHOOK: ${user} a déclenché ${effect}` 
+      });
+    }, 1000);
+
+    res.json({ success: true, message: 'Effet déclenché via webhook' });
+    logger.log(`Webhook Channel Points: ${effect} par ${user}`);
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // ======= ROUTE API AMÉLIORÉE POUR DEBUG =======
 
