@@ -84,9 +84,12 @@ class RouterManager {
     const twitchOAuth = this.serviceManager.getTwitchOAuth();
     const channelPoints = this.serviceManager.getChannelPoints();
     
-    if (twitchOAuth) {
-      setupChannelPointsRoutes(this.router, twitchOAuth, channelPoints, this.wsManager.broadcast.bind(this.wsManager));
-    }
+    setupChannelPointsRoutes(
+      this.router,
+      twitchOAuth,
+      channelPoints,
+      this.wsManager.broadcast.bind(this.wsManager)
+    );
 
     // Routes de base Channel Points
     this.router.get('/api/channel-points/status', this.handleChannelPointsStatus.bind(this));

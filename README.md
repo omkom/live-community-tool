@@ -83,6 +83,8 @@ Le système détecte automatiquement les effets selon :
 3. Taille : 1920x1080
 4. CSS : `body { background: rgba(0,0,0,0); }`
 
+Pour plus de détails et toutes les fonctionnalités Channel Points, voir la [documentation dédiée Channel Points](docs/channel-points.md).
+
 ## 🔧 API
 
 ### OAuth Twitch

@@ -16,6 +16,8 @@ class ChannelPointsAdmin {
       this.setupEventListeners();
       await this.loadStatus();
       await this.loadRewards();
+      await this.loadEffects();
+      await this.loadEventsHistory();
       
       // Mise à jour automatique toutes les 30 secondes
       this.updateInterval = setInterval(() => {
@@ -45,7 +47,7 @@ class ChannelPointsAdmin {
               </button>
             </div>
           </div>
-          
+
           <div class="channel-points-content">
             <!-- Statut -->
             <div class="cp-section">
@@ -65,7 +67,7 @@ class ChannelPointsAdmin {
                 </div>
               </div>
             </div>
-            
+
             <!-- Configuration des récompenses -->
             <div class="cp-section">
               <h4>
@@ -85,8 +87,8 @@ class ChannelPointsAdmin {
                 </button>
               </div>
             </div>
-            
-            <!-- Test des effets -->
+
+            <!-- Test des effets classiques -->
             <div class="cp-section">
               <h4><i class="fas fa-vial"></i> Test des Effets</h4>
               <div class="cp-test-controls">
@@ -105,8 +107,50 @@ class ChannelPointsAdmin {
                   <i class="fas fa-play"></i> Tester Effet
                 </button>
               </div>
+              <div class="cp-quantum-test-controls">
+                <select id="cp-quantum-effect" class="cp-select">
+                  <option value="">Chargement effets quantiques...</option>
+                </select>
+                <input type="text" id="cp-test-quantum-user" placeholder="Nom utilisateur" class="cp-input">
+                <input type="text" id="cp-test-quantum-input" placeholder="Texte input" class="cp-input">
+                <button class="btn" id="cp-test-quantum-button">
+                  <i class="fas fa-vial"></i> Tester Effet Quantique
+                </button>
+              </div>
             </div>
-            
+
+            <!-- Configuration avancée -->
+            <div class="cp-section">
+              <h4><i class="fas fa-tools"></i> Configuration Avancée</h4>
+              <div class="cp-advanced-actions">
+                <button class="btn btn-sm" id="cp-auto-configure"><i class="fas fa-magic"></i> Auto-configurer</button>
+                <button class="btn btn-sm" id="cp-quick-setup"><i class="fas fa-rocket"></i> Configuration Rapide</button>
+                <button class="btn btn-sm" id="cp-create-default"><i class="fas fa-plus-circle"></i> Créer Récompenses Défault</button>
+              </div>
+            </div>
+
+            <!-- Diagnostic & Métriques -->
+            <div class="cp-section">
+              <h4><i class="fas fa-stethoscope"></i> Diagnostic & Métriques</h4>
+              <div class="cp-advanced-actions">
+                <button class="btn btn-sm" id="cp-diagnostic"><i class="fas fa-search"></i> Diagnostic</button>
+                <button class="btn btn-sm" id="cp-metrics"><i class="fas fa-chart-bar"></i> Métriques</button>
+              </div>
+              <pre id="cp-diagnostic-output" class="cp-output"></pre>
+              <pre id="cp-metrics-output" class="cp-output"></pre>
+            </div>
+
+            <!-- Historique des Événements -->
+            <div class="cp-section">
+              <h4>
+                <i class="fas fa-history"></i> Historique Événements
+                <button class="btn btn-sm" id="cp-refresh-events-history"><i class="fas fa-sync"></i> Rafraîchir</button>
+              </h4>
+              <div id="cp-events-history" class="cp-events-history">
+                <div class="cp-loading"><i class="fas fa-spinner fa-spin"></i> Chargement des événements...</div>
+              </div>
+            </div>
+
             <!-- Logs des événements -->
             <div class="cp-section">
               <h4>
@@ -148,6 +192,35 @@ class ChannelPointsAdmin {
       // Clear events
       document.getElementById('cp-clear-events').addEventListener('click', () => {
         this.clearEvents();
+      });
+
+      // Test effet quantique
+      document.getElementById('cp-test-quantum-button').addEventListener('click', () => {
+        this.testQuantumEffect();
+      });
+
+      // Configuration avancée
+      document.getElementById('cp-auto-configure').addEventListener('click', () => {
+        this.autoConfigure();
+      });
+      document.getElementById('cp-quick-setup').addEventListener('click', () => {
+        this.quickSetup();
+      });
+      document.getElementById('cp-create-default').addEventListener('click', () => {
+        this.createDefaultRewards();
+      });
+
+      // Diagnostic & métriques
+      document.getElementById('cp-diagnostic').addEventListener('click', () => {
+        this.fetchDiagnostic();
+      });
+      document.getElementById('cp-metrics').addEventListener('click', () => {
+        this.fetchMetrics();
+      });
+
+      // Historique des événements
+      document.getElementById('cp-refresh-events-history').addEventListener('click', () => {
+        this.loadEventsHistory();
       });
     }
     
@@ -497,8 +570,162 @@ class ChannelPointsAdmin {
       // Rafraîchir le statut
       setTimeout(() => this.loadStatus(), 1000);
     }
-    
-    // Utilitaires
+
+    async loadEffects() {
+      try {
+        const res = await fetch('/api/channel-points/effects');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        this.effects = data;
+        const sel = document.getElementById('cp-quantum-effect');
+        if (sel) {
+          sel.innerHTML = data.quantum_effects.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+        }
+      } catch (error) {
+        console.error('Erreur chargement des effets quantiques:', error);
+      }
+    }
+
+    async loadEventsHistory(limit = 50) {
+      try {
+        const container = document.getElementById('cp-events-history');
+        container.innerHTML = '<div class="cp-loading"><i class="fas fa-spinner fa-spin"></i> Chargement des événements...</div>';
+        const res = await fetch(`/api/channel-points/events?limit=${limit}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { events = [] } = await res.json();
+        if (events.length === 0) {
+          container.innerHTML = '<div class="cp-no-events">Aucun événement historique</div>';
+          return;
+        }
+        container.innerHTML = events.map(ev => {
+          const time = new Date(ev.timestamp).toLocaleString();
+          const icon = ev.type === 'redemption' ? '💎' : '🧪';
+          return `
+            <div class="cp-event-item ${ev.type === 'redemption' ? 'live' : 'test'}">
+              <div class="cp-event-header">
+                <span class="cp-event-type">${icon} ${ev.type}</span>
+                <span class="cp-event-time">${time}</span>
+              </div>
+              <div class="cp-event-details">
+                <strong>${ev.user}</strong> → "${ev.reward}"${ev.effect ? `<span class=\"cp-event-effect\">(${ev.effect})</span>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Erreur chargement historique événements:', error);
+      }
+    }
+
+    async autoConfigure() {
+      try {
+        const res = await fetch('/api/channel-points/auto-configure', { method: 'POST' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = await res.json();
+        if (result.success) {
+          this.showSuccess(`Auto-config: ${result.effects_configured} effets configurés`);
+          await this.loadStatus();
+          await this.loadRewards();
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        console.error('Erreur configuration automatique:', error);
+        this.showError(`Erreur auto-config: ${error.message}`);
+      }
+    }
+
+    async quickSetup() {
+      try {
+        const res = await fetch('/api/channel-points/quick-setup', { method: 'POST' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = await res.json();
+        if (result.success) {
+          this.showSuccess(result.message);
+          await this.loadStatus();
+          await this.loadRewards();
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        console.error('Erreur configuration rapide:', error);
+        this.showError(`Erreur quick-setup: ${error.message}`);
+      }
+    }
+
+    async createDefaultRewards() {
+      try {
+        const res = await fetch('/api/channel-points/create-default-rewards', { method: 'POST' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = await res.json();
+        if (result.success) {
+          this.showSuccess(`${result.created}/${result.total} récompenses créées`);
+          await this.loadStatus();
+          await this.loadRewards();
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        console.error('Erreur création récompenses par défaut:', error);
+        this.showError(`Erreur create-default: ${error.message}`);
+      }
+    }
+
+    async fetchDiagnostic() {
+      try {
+        const output = document.getElementById('cp-diagnostic-output');
+        output.textContent = 'Chargement...';
+        const res = await fetch('/api/channel-points/diagnostic');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = await res.json();
+        output.textContent = JSON.stringify(result, null, 2);
+      } catch (error) {
+        console.error('Erreur diagnostic:', error);
+        const output = document.getElementById('cp-diagnostic-output');
+        if (output) output.textContent = `Erreur: ${error.message}`;
+        this.showError(`Erreur diagnostic: ${error.message}`);
+      }
+    }
+
+    async fetchMetrics() {
+      try {
+        const output = document.getElementById('cp-metrics-output');
+        output.textContent = 'Chargement...';
+        const res = await fetch('/api/channel-points/metrics');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = await res.json();
+        output.textContent = JSON.stringify(result, null, 2);
+      } catch (error) {
+        console.error('Erreur métriques:', error);
+        const output = document.getElementById('cp-metrics-output');
+        if (output) output.textContent = `Erreur: ${error.message}`;
+        this.showError(`Erreur métriques: ${error.message}`);
+      }
+    }
+
+    async testQuantumEffect() {
+      try {
+        const effectType = document.getElementById('cp-quantum-effect').value;
+        const userName = document.getElementById('cp-test-quantum-user').value || 'QuantumTester';
+        const userInput = document.getElementById('cp-test-quantum-input').value || '';
+        const res = await fetch('/api/channel-points/test-quantum-effect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ effectType, userName, userInput })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = await res.json();
+        if (result.success) {
+          this.showSuccess(result.message);
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        console.error('Erreur test effet quantique:', error);
+        this.showError(`Erreur test-quantum: ${error.message}`);
+      }
+    }
+
     escapeHtml(text) {
       const map = {
         '&': '&amp;',
