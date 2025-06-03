@@ -1,4 +1,4 @@
-// server/twitch-channel-points.js - Version corrigée avec gestion d'erreurs
+// server/twitch-channel-points.js - Version avec nouveaux effets quantiques
 const axios = require('axios');
 const EventEmitter = require('events');
 const logger = require('./logger');
@@ -12,26 +12,45 @@ class TwitchChannelPoints extends EventEmitter {
     this.processedRedemptions = new Set();
     this.rewardEffects = new Map();
     this.lastPollTime = Date.now();
-    this.hasPartnerStatus = false; // Nouveau : tracker le statut
-    this.statusChecked = false;    // Nouveau : éviter les vérifications répétées
+    this.hasPartnerStatus = false;
+    this.statusChecked = false;
     
-    // Configuration des effets par défaut
-    this.setDefaultEffects();
+    // Configuration des nouveaux effets quantiques
+    this.setQuantumEffects();
   }
 
-  setDefaultEffects() {
-    this.rewardEffects.set('confetti', 'tada');
-    this.rewardEffects.set('celebration', 'tada');
+  setQuantumEffects() {
+    // NOUVEAUX EFFETS QUANTIQUES
+    this.rewardEffects.set('effondrement', 'quantum_collapse');
+    this.rewardEffects.set('fonction d\'onde', 'quantum_collapse');
+    this.rewardEffects.set('collapse', 'quantum_collapse');
+    this.rewardEffects.set('question', 'quantum_collapse');
+    
+    this.rewardEffects.set('recul temporel', 'temporal_rewind');
+    this.rewardEffects.set('temporel', 'temporal_rewind');
+    this.rewardEffects.set('rewind', 'temporal_rewind');
+    this.rewardEffects.set('temps', 'temporal_rewind');
+    
+    this.rewardEffects.set('cognitif', 'cognitive_collapse');
+    this.rewardEffects.set('expliquer', 'cognitive_collapse');
+    this.rewardEffects.set('enfant', 'cognitive_collapse');
+    this.rewardEffects.set('concept', 'cognitive_collapse');
+    
+    this.rewardEffects.set('papillon', 'butterfly_effect');
+    this.rewardEffects.set('mutation', 'butterfly_effect');
+    this.rewardEffects.set('background', 'butterfly_effect');
+    this.rewardEffects.set('changement', 'butterfly_effect');
+    
+    this.rewardEffects.set('conscience', 'quantum_consciousness');
+    this.rewardEffects.set('citation', 'quantum_consciousness');
+    this.rewardEffects.set('mystérieuse', 'quantum_consciousness');
+    this.rewardEffects.set('poésie', 'quantum_consciousness');
+
+    // EFFETS CLASSIQUES (réduits)
     this.rewardEffects.set('perturbation', 'perturbation');
+    this.rewardEffects.set('confetti', 'tada');
     this.rewardEffects.set('flash', 'flash');
-    this.rewardEffects.set('éclair', 'flash');
-    this.rewardEffects.set('zoom', 'zoom');
-    this.rewardEffects.set('shake', 'shake');
-    this.rewardEffects.set('secoue', 'shake');
-    this.rewardEffects.set('bounce', 'bounce');
-    this.rewardEffects.set('rebond', 'bounce');
     this.rewardEffects.set('pulse', 'pulse');
-    this.rewardEffects.set('coeur', 'pulse');
   }
 
   async startMonitoring() {
@@ -41,18 +60,15 @@ class TwitchChannelPoints extends EventEmitter {
     }
 
     try {
-      // Vérifier que OAuth est connecté
       if (!this.twitchOAuth.isConnected()) {
         throw new Error('OAuth Twitch non connecté');
       }
 
-      // Vérifier les tokens
       const tokens = await this.twitchOAuth.ensureValidTokens();
       if (!tokens) {
         throw new Error('Tokens Twitch invalides');
       }
 
-      // Vérifier le statut du streamer
       const statusCheck = await this.checkStreamerStatus();
       if (!statusCheck.success) {
         throw new Error(statusCheck.error);
@@ -61,7 +77,7 @@ class TwitchChannelPoints extends EventEmitter {
       this.isMonitoring = true;
       this.startPolling();
       
-      logger.log('✅ Surveillance Channel Points démarrée');
+      logger.log('✅ Surveillance Channel Points quantiques démarrée');
       this.emit('monitoring:started');
       
       return true;
@@ -73,7 +89,6 @@ class TwitchChannelPoints extends EventEmitter {
     }
   }
 
-  // NOUVEAU : Vérifier le statut du streamer
   async checkStreamerStatus() {
     if (this.statusChecked) {
       return { success: this.hasPartnerStatus };
@@ -87,7 +102,6 @@ class TwitchChannelPoints extends EventEmitter {
         return { success: false, error: 'Informations utilisateur non disponibles' };
       }
 
-      // Vérifier les informations du broadcaster
       const response = await axios.get(`https://api.twitch.tv/helix/users?id=${userInfo.user.id}`, {
         headers: {
           'Client-ID': this.twitchOAuth.clientId,
@@ -107,7 +121,7 @@ class TwitchChannelPoints extends EventEmitter {
           };
         }
 
-        logger.log(`Statut vérifié : ${user.broadcaster_type} - Channel Points disponibles`);
+        logger.log(`Statut vérifié : ${user.broadcaster_type} - Channel Points quantiques disponibles`);
         return { success: true };
       }
 
@@ -132,17 +146,15 @@ class TwitchChannelPoints extends EventEmitter {
       this.pollInterval = null;
     }
 
-    logger.log('✅ Surveillance Channel Points arrêtée');
+    logger.log('✅ Surveillance Channel Points quantiques arrêtée');
     this.emit('monitoring:stopped');
   }
 
   startPolling() {
-    // Polling toutes les 10 secondes (réduit la fréquence)
     this.pollInterval = setInterval(async () => {
       try {
         await this.checkForNewRedemptions();
       } catch (error) {
-        // AMÉLIORÉ : Gestion d'erreur plus granulaire
         if (error.response?.status === 403) {
           logger.error('Erreur 403 - Arrêt de la surveillance Channel Points');
           this.stopMonitoring();
@@ -151,48 +163,9 @@ class TwitchChannelPoints extends EventEmitter {
           logger.error(`Erreur polling Channel Points: ${error.message}`);
         }
       }
-    }, 10000); // Changé de 5000 à 10000ms
+    }, 8000); // 8 secondes pour réduire la charge
 
-    logger.log('Polling Channel Points démarré');
-  }
-
-  async testTwitchAPI() {
-    try {
-      const tokens = await this.twitchOAuth.ensureValidTokens();
-      if (!tokens) {
-        return { success: false, error: 'Tokens non disponibles' };
-      }
-
-      // Test avec l'API Users
-      const response = await axios.get('https://api.twitch.tv/helix/users', {
-        headers: {
-          'Client-ID': this.twitchOAuth.clientId,
-          'Authorization': `Bearer ${tokens.access_token}`
-        }
-      });
-
-      if (response.status === 200 && response.data.data.length > 0) {
-        return { 
-          success: true, 
-          user: response.data.data[0] 
-        };
-      } else {
-        return { success: false, error: 'Réponse API invalide' };
-      }
-
-    } catch (error) {
-      let errorMsg = 'Erreur inconnue';
-      
-      if (error.response?.status === 401) {
-        errorMsg = 'Token expiré ou invalide';
-      } else if (error.response?.status === 403) {
-        errorMsg = 'Permissions insuffisantes';
-      } else {
-        errorMsg = error.message;
-      }
-
-      return { success: false, error: errorMsg };
-    }
+    logger.log('Polling Channel Points quantiques démarré');
   }
 
   async checkForNewRedemptions() {
@@ -203,7 +176,6 @@ class TwitchChannelPoints extends EventEmitter {
         return;
       }
 
-      // Obtenir l'ID utilisateur
       const userInfo = this.twitchOAuth.getConnectionInfo();
       if (!userInfo.connected || !userInfo.user) {
         logger.error('Informations utilisateur non disponibles');
@@ -212,7 +184,6 @@ class TwitchChannelPoints extends EventEmitter {
 
       const broadcasterId = userInfo.user.id;
 
-      // Récupérer les récompenses personnalisées avec gestion d'erreur
       let rewardsResponse;
       try {
         rewardsResponse = await axios.get(
@@ -226,20 +197,13 @@ class TwitchChannelPoints extends EventEmitter {
         );
       } catch (rewardError) {
         if (rewardError.response?.status === 403) {
-          // AMÉLIORÉ : Log plus informatif et arrêt gracieux
-          logger.error('Erreur 403 - Accès Channel Points refusé. Vérifiez :');
-          logger.error('1. Statut Affilié/Partenaire Twitch');
-          logger.error('2. Client ID correspond à l\'app qui a créé les récompenses');
-          logger.error('3. Permissions OAuth (channel:read:redemptions)');
-          
-          // Arrêter la surveillance pour éviter le spam d'erreurs
+          logger.error('Erreur 403 - Accès Channel Points refusé');
           this.stopMonitoring();
           this.emit('error', new Error('Accès Channel Points refusé - Surveillance arrêtée'));
         }
         throw rewardError;
       }
 
-      // Vérifier les rachats pour chaque récompense
       for (const reward of rewardsResponse.data.data) {
         await this.checkRewardRedemptions(broadcasterId, reward, tokens);
       }
@@ -251,7 +215,6 @@ class TwitchChannelPoints extends EventEmitter {
         logger.error('Token expiré, reconnexion requise');
         this.emit('error', new Error('Token expiré'));
       } else if (error.response?.status === 403) {
-        // Déjà géré au-dessus
         return;
       } else {
         logger.error(`Erreur vérification rachats: ${error.message}`);
@@ -261,8 +224,7 @@ class TwitchChannelPoints extends EventEmitter {
 
   async checkRewardRedemptions(broadcasterId, reward, tokens) {
     try {
-      // Récupérer les rachats récents (depuis le dernier poll)
-      const since = new Date(Date.now() - 60000).toISOString(); // Dernière minute
+      const since = new Date(Date.now() - 90000).toISOString(); // Dernières 90 secondes
       
       const redemptionsResponse = await axios.get(
         `https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id=${broadcasterId}&reward_id=${reward.id}&status=FULFILLED&sort=NEWEST&first=20&started_at=${since}`,
@@ -274,11 +236,9 @@ class TwitchChannelPoints extends EventEmitter {
         }
       );
 
-      // Traiter les nouveaux rachats
       for (const redemption of redemptionsResponse.data.data) {
         const redemptionKey = `${redemption.id}`;
         
-        // Éviter le traitement en double
         if (this.processedRedemptions.has(redemptionKey)) {
           continue;
         }
@@ -287,7 +247,6 @@ class TwitchChannelPoints extends EventEmitter {
         await this.handleRedemption(reward, redemption);
       }
 
-      // Nettoyer les anciens rachats traités (garder 1000 max)
       if (this.processedRedemptions.size > 1000) {
         const entries = Array.from(this.processedRedemptions);
         this.processedRedemptions.clear();
@@ -295,23 +254,20 @@ class TwitchChannelPoints extends EventEmitter {
       }
 
     } catch (error) {
-      // AMÉLIORÉ : Ne pas logger l'erreur 403 répétitivement
       if (error.response?.status !== 403) {
         logger.error(`Erreur rachats pour ${reward.title}: ${error.message}`);
       }
-      // Ne plus logger les détails JSON pour réduire le spam
     }
   }
 
   async handleRedemption(reward, redemption) {
     try {
-      logger.log(`Channel Points: ${redemption.user_name} → ${reward.title} (${reward.cost} points)`);
+      logger.log(`🔮 Channel Points Quantique: ${redemption.user_name} → ${reward.title} (${reward.cost} points)`);
 
-      // Détecter l'effet
-      const effect = this.detectEffect(reward);
+      const effect = this.detectQuantumEffect(reward);
       
-      // Émettre l'événement de rachat
-      this.emit('redemption', {
+      // Données enrichies pour les nouveaux effets
+      const eventData = {
         reward: {
           id: reward.id,
           title: reward.title,
@@ -325,46 +281,50 @@ class TwitchChannelPoints extends EventEmitter {
         },
         redemption: {
           id: redemption.id,
-          user_input: redemption.user_input,
+          user_input: redemption.user_input, // Important pour les nouveaux effets
           redeemed_at: redemption.redeemed_at
         },
         effect: effect
-      });
+      };
+
+      this.emit('redemption', eventData);
 
     } catch (error) {
-      logger.error(`Erreur traitement rachat: ${error.message}`);
+      logger.error(`Erreur traitement rachat quantique: ${error.message}`);
     }
   }
 
-  detectEffect(reward) {
+  detectQuantumEffect(reward) {
     const title = reward.title.toLowerCase();
     const prompt = (reward.prompt || '').toLowerCase();
     
-    // Rechercher dans les mappings configurés
+    // Recherche spécifique pour les nouveaux effets quantiques
     for (const [keyword, effect] of this.rewardEffects) {
       if (title.includes(keyword) || prompt.includes(keyword)) {
         return effect;
       }
     }
 
-    // Détection par coût si aucun mot-clé trouvé
-    if (reward.cost >= 1000) return 'tada';
-    if (reward.cost >= 500) return 'pulse';
-    if (reward.cost >= 100) return 'bounce';
+    // Détection par coût avec nouveaux seuils
+    if (reward.cost >= 1500) return 'cognitive_collapse';
+    if (reward.cost >= 1200) return 'butterfly_effect';
+    if (reward.cost >= 1000) return 'temporal_rewind';
+    if (reward.cost >= 800) return 'quantum_consciousness';
+    if (reward.cost >= 750) return 'quantum_collapse';
+    if (reward.cost >= 500) return 'perturbation';
     
-    return 'flash'; // Effet par défaut
+    return 'pulse'; // Effet par défaut léger
   }
 
   configureRewardEffects(mappings) {
     this.rewardEffects.clear();
-    this.setDefaultEffects(); // Garder les mappings par défaut
+    this.setQuantumEffects(); // Garder les mappings quantiques
     
-    // Ajouter les mappings personnalisés
     for (const [keyword, effect] of Object.entries(mappings)) {
       this.rewardEffects.set(keyword.toLowerCase(), effect);
     }
     
-    logger.log(`Channel Points configuré: ${this.rewardEffects.size} mappings`);
+    logger.log(`Channel Points quantiques configurés: ${this.rewardEffects.size} mappings`);
   }
 
   async getAvailableRewards() {
@@ -379,7 +339,6 @@ class TwitchChannelPoints extends EventEmitter {
         return [];
       }
 
-      // Vérifier d'abord le statut
       const statusCheck = await this.checkStreamerStatus();
       if (!statusCheck.success) {
         logger.error(`Impossible de récupérer les récompenses: ${statusCheck.error}`);
@@ -405,7 +364,7 @@ class TwitchChannelPoints extends EventEmitter {
         prompt: reward.prompt,
         isEnabled: reward.is_enabled,
         isPaused: reward.is_paused,
-        suggestedEffect: this.detectEffect(reward)
+        suggestedEffect: this.detectQuantumEffect(reward)
       }));
 
     } catch (error) {
@@ -425,7 +384,8 @@ class TwitchChannelPoints extends EventEmitter {
       eventSubscriptionsCount: this.processedRedemptions.size,
       lastEventId: this.lastPollTime,
       hasPartnerStatus: this.hasPartnerStatus,
-      statusChecked: this.statusChecked
+      statusChecked: this.statusChecked,
+      quantumEffectsEnabled: true
     };
   }
 
@@ -433,7 +393,7 @@ class TwitchChannelPoints extends EventEmitter {
     const oldSize = this.processedRedemptions.size;
     this.processedRedemptions.clear();
     
-    logger.log(`Nettoyage Channel Points: ${oldSize} événements supprimés`);
+    logger.log(`Nettoyage Channel Points quantiques: ${oldSize} événements supprimés`);
   }
 }
 

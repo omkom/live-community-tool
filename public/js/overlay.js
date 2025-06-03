@@ -1,5 +1,4 @@
-// public/js/overlay.js
-// Variables globales
+// public/js/overlay.js - Version avec effets quantiques
 let ws = null;
 let confetti = null;
 let messageQueue = [];
@@ -7,13 +6,16 @@ let effectQueue = [];
 let isProcessingMessage = false;
 let isProcessingEffect = false;
 
-// Initialisation
+// Variables pour les effets quantiques
+let butterflyEffectTimeout = null;
+let currentButterflyStage = 0;
+
 document.addEventListener('DOMContentLoaded', () => {
   initWebSocket();
   setupConfetti();
+  setupQuantumEffects();
 });
 
-// Initialisation WebSocket
 function initWebSocket() {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = `${protocol}//${window.location.host}?type=overlay`;
@@ -21,44 +23,41 @@ function initWebSocket() {
   ws = new WebSocket(wsUrl);
   
   ws.onopen = () => {
-    console.log('Connexion WebSocket établie');
+    console.log('🔮 Connexion WebSocket quantique établie');
   };
   
   ws.onclose = () => {
-    console.log('Connexion WebSocket perdue. Tentative de reconnexion...');
-    setTimeout(initWebSocket, 3000); // Tentative de reconnexion après 3s
+    console.log('⚡ Connexion WebSocket perdue. Reconnexion quantique...');
+    setTimeout(initWebSocket, 3000);
   };
   
   ws.onerror = (error) => {
-    console.error('Erreur WebSocket:', error);
+    console.error('❌ Erreur WebSocket quantique:', error);
   };
   
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
-      console.log('Message reçu:', data);
+      console.log('📡 Message quantique reçu:', data);
       
       if (data.type === 'effect') {
-        queueEffect(data.value);
+        queueEffect(data.value, data.data);
       } else if (data.type === 'message') {
         queueMessage(data.value);
       }
     } catch (e) {
-      console.error('Erreur de parsing WebSocket:', e, event.data);
+      console.error('💥 Erreur parsing WebSocket quantique:', e, event.data);
     }
   };
 }
 
-// Configuration du confetti
-// Configuration du confetti
 function setupConfetti() {
   const canvas = document.getElementById('confetti-canvas');
   
-  // Check if ConfettiGenerator exists
   if (typeof ConfettiGenerator === 'undefined') {
-    console.warn('ConfettiGenerator not found. Confetti effects will be disabled.');
+    console.warn('⚠️ ConfettiGenerator non trouvé. Effets confetti désactivés.');
     confetti = {
-      render: () => console.log('Confetti render called but library not loaded'),
+      render: () => console.log('🎊 Confetti render appelé mais librairie non chargée'),
       clear: () => {}
     };
     return;
@@ -66,31 +65,47 @@ function setupConfetti() {
   
   const confettiSettings = {
     target: canvas,
-    max: 150,
-    size: 1.5,
+    max: 200,
+    size: 1.8,
     animate: true,
     respawn: false,
     props: ['circle', 'square', 'triangle', 'line'],
-    colors: [[165, 104, 246], [230, 61, 135], [0, 199, 228], [253, 214, 126]],
+    colors: [[0, 255, 204], [255, 107, 107], [138, 43, 226], [255, 215, 0]],
     clock: 25
   };
   
   confetti = new ConfettiGenerator(confettiSettings);
 }
 
-// Ajouter un message à la file d'attente
+function setupQuantumEffects() {
+  // Initialiser les éléments pour les effets quantiques
+  const container = document.getElementById('overlay-container');
+  
+  // Zone de texte quantique pour les citations et questions
+  const quantumText = document.createElement('div');
+  quantumText.id = 'quantum-text-zone';
+  quantumText.className = 'quantum-text-zone';
+  container.appendChild(quantumText);
+  
+  // Zone de notification quantique
+  const quantumNotif = document.createElement('div');
+  quantumNotif.id = 'quantum-notification';
+  quantumNotif.className = 'quantum-notification';
+  container.appendChild(quantumNotif);
+  
+  console.log('🔮 Effets quantiques initialisés');
+}
+
 function queueMessage(message) {
   messageQueue.push(message);
   processMessageQueue();
 }
 
-// Ajouter un effet à la file d'attente
-function queueEffect(effectType) {
-  effectQueue.push(effectType);
+function queueEffect(effectType, effectData = null) {
+  effectQueue.push({ type: effectType, data: effectData });
   processEffectQueue();
 }
 
-// Traiter la file d'attente de messages
 function processMessageQueue() {
   if (isProcessingMessage || messageQueue.length === 0) {
     return;
@@ -103,116 +118,296 @@ function processMessageQueue() {
   setTimeout(() => {
     isProcessingMessage = false;
     processMessageQueue();
-  }, 5000); // Attendre 5 secondes entre les messages
+  }, 5000);
 }
 
-// Traiter la file d'attente d'effets
 function processEffectQueue() {
   if (isProcessingEffect || effectQueue.length === 0) {
     return;
   }
   
   isProcessingEffect = true;
-  const effectType = effectQueue.shift();
-  triggerEffect(effectType);
+  const effect = effectQueue.shift();
+  triggerEffect(effect.type, effect.data);
+  
+  // Délai adaptatif selon le type d'effet
+  const delays = {
+    quantum_collapse: 8000,
+    temporal_rewind: 6000,
+    cognitive_collapse: 10000,
+    butterfly_effect: 2000, // Plus court car effet de 5 minutes
+    quantum_consciousness: 7000
+  };
+  
+  const delay = delays[effect.type] || 3000;
   
   setTimeout(() => {
     isProcessingEffect = false;
     processEffectQueue();
-  }, 3000); // Attendre 3 secondes entre les effets
+  }, delay);
 }
 
-// Afficher un message
 function showMessage(text) {
   const messageBox = document.getElementById('messageBox');
   
-  // Réinitialiser les animations
   messageBox.classList.remove('message-show');
-  void messageBox.offsetWidth; // Force reflow
+  void messageBox.offsetWidth;
   
-  // Définir le contenu et lancer l'animation
   messageBox.textContent = text;
   messageBox.classList.add('message-show');
   
-  // Supprimer l'animation après son exécution
   setTimeout(() => {
     messageBox.classList.remove('message-show');
     messageBox.textContent = '';
   }, 5000);
 }
 
-// Déclencher un effet
-function triggerEffect(type) {
-  const effectBox = document.getElementById('effectBox');
-  const effectContent = document.getElementById('effectContent');
+function triggerEffect(type, data = null) {
+  console.log(`🎭 Déclenchement effet quantique: ${type}`, data);
   
-  // Réinitialiser les animations
-  effectBox.className = '';
-  void effectBox.offsetWidth; // Force reflow
-  
-  // Appliquer l'effet approprié
   switch (type) {
+    // NOUVEAUX EFFETS QUANTIQUES
+    case 'quantum_collapse':
+      triggerQuantumCollapse(data);
+      break;
+      
+    case 'temporal_rewind':
+      triggerTemporalRewind(data);
+      break;
+      
+    case 'cognitive_collapse':
+      triggerCognitiveCollapse(data);
+      break;
+      
+    case 'butterfly_effect':
+      triggerButterflyEffect(data);
+      break;
+      
+    case 'quantum_consciousness':
+      triggerQuantumConsciousness(data);
+      break;
+    
+    // EFFETS CLASSIQUES CONSERVÉS
     case 'perturbation':
       triggerPerturbationEffect();
       break;
+      
     case 'tada':
-      effectContent.textContent = '✨ TADA ✨';
-      effectBox.style.opacity = '1';
-      effectContent.style.transform = 'scale(1)';
-      effectContent.classList.add('tada');
+      triggerTadaEffect();
       break;
       
     case 'flash':
-      effectBox.classList.add('flash');
-      break;
-      
-    case 'zoom':
-      effectContent.textContent = '🔍 ZOOM 🔍';
-      effectBox.style.opacity = '1';
-      effectContent.classList.add('zoom');
-      break;
-      
-    case 'shake':
-      effectContent.textContent = '📳 SHAKE 📳';
-      effectBox.style.opacity = '1';
-      effectContent.classList.add('shake');
-      break;
-      
-    case 'bounce':
-      effectContent.textContent = '🏀 BOUNCE 🏀';
-      effectBox.style.opacity = '1';
-      effectContent.classList.add('bounce');
+      triggerFlashEffect();
       break;
       
     case 'pulse':
-      effectContent.textContent = '💓 PULSE 💓';
-      effectBox.style.opacity = '1';
-      effectContent.classList.add('pulse');
+      triggerPulseEffect();
       break;
       
     default:
-      effectContent.textContent = `✨ ${type.toUpperCase()} ✨`;
-      effectBox.style.opacity = '1';
-      effectContent.classList.add('fade');
+      triggerDefaultEffect(type);
   }
-  
-  // Si c'est un effet avec confetti
-  if (type === 'tada') {
-    confetti.render();
-    
-    setTimeout(() => {
-      confetti.clear();
-    }, 3000);
-  }
-  
-  // Réinitialiser après la fin de l'animation
-  setTimeout(() => {
-    effectBox.className = '';
-    effectBox.style.opacity = '0';
-    effectContent.className = '';
-    effectContent.textContent = '';
-  }, 3000);
 }
+
+// ===== NOUVEAUX EFFETS QUANTIQUES =====
+
+function triggerQuantumCollapse(data) {
+  const quantumNotif = document.getElementById('quantum-notification');
+  const quantumText = document.getElementById('quantum-text-zone');
+  
+  // Animation d'effondrement de la fonction d'onde
+  quantumNotif.innerHTML = `
+    <div class="quantum-wave-collapse">
+      <div class="wave-equation">Ψ = Σ|n⟩</div>
+      <div class="collapse-arrow">⬇️</div>
+      <div class="collapsed-state">📡 QUESTION INSTANTANÉE</div>
+    </div>
+  `;
+  
+  quantumNotif.classList.add('quantum-collapse-animation');
+  
+  // Afficher la demande
+  setTimeout(() => {
+    quantumText.innerHTML = `
+      <div class="quantum-question-demand">
+        <h2>🔮 EFFONDREMENT DE LA FONCTION D'ONDE</h2>
+        <p class="urgent-demand">RÉPONSE INSTANTANÉE REQUISE !</p>
+        <p class="question-prompt">Une question va être posée dans le chat...</p>
+        <div class="quantum-timer">⏰ 3... 2... 1...</div>
+      </div>
+    `;
+    quantumText.classList.add('quantum-text-active');
+  }, 1500);
+  
+  // Nettoyage
+  setTimeout(() => {
+    quantumNotif.classList.remove('quantum-collapse-animation');
+    quantumText.classList.remove('quantum-text-active');
+    quantumNotif.innerHTML = '';
+    quantumText.innerHTML = '';
+  }, 8000);
+}
+
+function triggerTemporalRewind(data) {
+  const effectBox = document.getElementById('effectBox');
+  const effectContent = document.getElementById('effectContent');
+  
+  // Effet de rewind temporel
+  effectContent.innerHTML = `
+    <div class="temporal-rewind-effect">
+      <div class="time-symbols">⏳ 🌀 ⏰</div>
+      <div class="rewind-text">RECUL TEMPOREL LOCALISÉ</div>
+      <div class="rewind-instruction">Répète ta dernière phrase !</div>
+      <div class="time-wave">〰️〰️〰️</div>
+    </div>
+  `;
+  
+  effectBox.style.opacity = '1';
+  effectBox.classList.add('temporal-rewind');
+  
+  // Animation spéciale de rewind
+  document.body.style.filter = 'hue-rotate(180deg)';
+  
+  setTimeout(() => {
+    document.body.style.filter = 'hue-rotate(0deg)';
+  }, 1000);
+  
+  setTimeout(() => {
+    effectBox.classList.remove('temporal-rewind');
+    effectBox.style.opacity = '0';
+    effectContent.innerHTML = '';
+  }, 6000);
+}
+
+function triggerCognitiveCollapse(data) {
+  const quantumText = document.getElementById('quantum-text-zone');
+  
+  quantumText.innerHTML = `
+    <div class="cognitive-collapse-effect">
+      <div class="brain-icon">🧠</div>
+      <h2 class="collapse-title">COLLAPSE COGNITIF</h2>
+      <div class="instruction">
+        <p>📚➡️👶 Explique un concept complexe</p>
+        <p class="detail">comme si tu parlais à un enfant de 5 ans</p>
+      </div>
+      <div class="concept-examples">
+        💫 Physique quantique • 🌌 Relativité • 🧬 ADN • 🤖 IA
+      </div>
+    </div>
+  `;
+  
+  quantumText.classList.add('cognitive-collapse-active');
+  
+  setTimeout(() => {
+    quantumText.classList.remove('cognitive-collapse-active');
+    quantumText.innerHTML = '';
+  }, 10000);
+}
+
+function triggerButterflyEffect(data) {
+  const container = document.getElementById('overlay-container');
+  
+  // Annonce de l'effet papillon
+  const notification = document.getElementById('quantum-notification');
+  notification.innerHTML = `
+    <div class="butterfly-announcement">
+      🦋 EFFET PAPILLON ACTIVÉ 🦋
+      <div class="mutation-text">Mutation visuelle en cours...</div>
+    </div>
+  `;
+  notification.classList.add('butterfly-notification');
+  
+  // Démarrer les mutations visuelles pour 5 minutes
+  startButterflyMutations();
+  
+  setTimeout(() => {
+    notification.classList.remove('butterfly-notification');
+    notification.innerHTML = '';
+  }, 5000);
+}
+
+function startButterflyMutations() {
+  currentButterflyStage = 1;
+  const duration = 5 * 60 * 1000; // 5 minutes
+  const stages = 15; // 15 changements sur 5 minutes
+  const stageInterval = duration / stages;
+  
+  const mutations = [
+    () => document.body.style.filter = 'hue-rotate(45deg)',
+    () => document.body.style.filter = 'sepia(0.5) hue-rotate(180deg)',
+    () => document.body.style.filter = 'invert(0.1) saturate(1.5)',
+    () => document.body.style.filter = 'contrast(1.2) brightness(1.1)',
+    () => document.body.style.filter = 'hue-rotate(270deg) saturate(0.8)',
+    () => document.body.style.transform = 'scale(1.02) rotate(0.5deg)',
+    () => document.body.style.filter = 'blur(0.5px) hue-rotate(90deg)',
+    () => document.body.style.filter = 'grayscale(0.3) hue-rotate(315deg)',
+    () => { 
+      document.body.style.filter = 'none';
+      document.body.style.transform = 'none';
+    }
+  ];
+  
+  butterflyEffectTimeout = setInterval(() => {
+    if (currentButterflyStage <= stages) {
+      const mutationIndex = (currentButterflyStage - 1) % mutations.length;
+      mutations[mutationIndex]();
+      currentButterflyStage++;
+    } else {
+      // Retour à la normale
+      document.body.style.filter = 'none';
+      document.body.style.transform = 'none';
+      clearInterval(butterflyEffectTimeout);
+      
+      // Notification de fin
+      const notification = document.getElementById('quantum-notification');
+      notification.innerHTML = '🦋 Effet Papillon terminé - Retour à la normale';
+      notification.classList.add('butterfly-end');
+      
+      setTimeout(() => {
+        notification.classList.remove('butterfly-end');
+        notification.innerHTML = '';
+      }, 3000);
+    }
+  }, stageInterval);
+}
+
+function triggerQuantumConsciousness(data) {
+  const quantumText = document.getElementById('quantum-text-zone');
+  
+  // Citations mystérieuses prédéfinies en cas de données manquantes
+  const mysticalQuotes = [
+    "« Dans le silence des étoiles, l'âme trouve sa vraie voix. »",
+    "« Nous sommes tous des poussières d'étoiles cherchant la lumière. »",
+    "« Le temps n'est qu'une illusion, l'éternité est notre vraie demeure. »",
+    "« Dans chaque goutte d'eau se reflète l'océan infini. »",
+    "« La conscience est le miroir dans lequel l'univers se contemple. »"
+  ];
+  
+  const randomQuote = mysticalQuotes[Math.floor(Math.random() * mysticalQuotes.length)];
+  const displayQuote = data?.userInput || randomQuote;
+  
+  quantumText.innerHTML = `
+    <div class="quantum-consciousness-effect">
+      <div class="consciousness-symbols">🧿 ✨ 🌌</div>
+      <h2 class="consciousness-title">CONSCIENCE QUANTIQUE</h2>
+      <div class="mystical-quote">
+        <div class="quote-marks">❝</div>
+        <p class="quote-text">${displayQuote}</p>
+        <div class="quote-marks">❞</div>
+      </div>
+      <div class="cosmic-elements">⭐ 🌙 ♾️ 🔮</div>
+    </div>
+  `;
+  
+  quantumText.classList.add('quantum-consciousness-active');
+  
+  setTimeout(() => {
+    quantumText.classList.remove('quantum-consciousness-active');
+    quantumText.innerHTML = '';
+  }, 7000);
+}
+
+// ===== EFFETS CLASSIQUES SIMPLIFIÉS =====
 
 function triggerPerturbationEffect() {
   const effectImage = document.querySelector('.effect-image');
@@ -229,52 +424,82 @@ function triggerPerturbationEffect() {
   let startTime = Date.now();
   const duration = 5000;
 
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const viewportDiagonal = Math.sqrt(vw * vw + vh * vh);
-  const scaleBase = viewportDiagonal / Math.min(vw, vh);
-
   function animate() {
     const elapsed = Date.now() - startTime;
     const progress = Math.min(elapsed / duration, 1);
 
     const entranceEased = 1 - Math.cos(progress * Math.PI / 2);
-    const zTranslate = -3000 + entranceEased * 3000;
-
     effectImage.style.opacity = entranceEased * 0.3;
-
-    const rotation = entranceEased * 90;
-
-    const chaosTime = Date.now() * 0.005;
-    const chaosScale = 1 + Math.sin(chaosTime * 3.3) * 0.05;
-    const scale = scaleBase * (1.1 + chaosScale * 0.1);
-
-    effectImage.style.transform = `
-      scale(${scale})
-      rotate(${rotation}deg)
-      translateZ(${zTranslate}px)
-    `;
 
     if (progress < 1) {
       requestAnimationFrame(animate);
     } else {
-      let fadeProgress = 1;
-      const fadeInterval = setInterval(() => {
-        fadeProgress -= 0.02;
-        if (fadeProgress <= 0) {
-          effectImage.style.opacity = '0';
-          noise.style.opacity = '0';
-          waveOverlay1.style.opacity = '0';
-          waveOverlay2.style.opacity = '0';
-          waveOverlay3.style.opacity = '0';
-          clearInterval(fadeInterval);
-        } else {
-          effectImage.style.opacity = (fadeProgress * 0.3).toFixed(3);
-          noise.style.opacity = (fadeProgress * 0.15).toFixed(3);
-        }
-      }, 30);
+      effectImage.style.opacity = '0';
+      noise.style.opacity = '0';
+      waveOverlay1.style.opacity = '0';
+      waveOverlay2.style.opacity = '0';
+      waveOverlay3.style.opacity = '0';
     }
   }
 
   requestAnimationFrame(animate);
+}
+
+function triggerTadaEffect() {
+  const effectBox = document.getElementById('effectBox');
+  const effectContent = document.getElementById('effectContent');
+  
+  effectContent.textContent = '✨ TADA ✨';
+  effectBox.style.opacity = '1';
+  effectContent.classList.add('tada');
+  
+  if (confetti) {
+    confetti.render();
+    setTimeout(() => confetti.clear(), 3000);
+  }
+  
+  setTimeout(() => {
+    effectBox.style.opacity = '0';
+    effectContent.classList.remove('tada');
+    effectContent.textContent = '';
+  }, 3000);
+}
+
+function triggerFlashEffect() {
+  const effectBox = document.getElementById('effectBox');
+  effectBox.classList.add('flash');
+  
+  setTimeout(() => {
+    effectBox.classList.remove('flash');
+  }, 1000);
+}
+
+function triggerPulseEffect() {
+  const effectBox = document.getElementById('effectBox');
+  const effectContent = document.getElementById('effectContent');
+  
+  effectContent.textContent = '💓 PULSE 💓';
+  effectBox.style.opacity = '1';
+  effectContent.classList.add('pulse');
+  
+  setTimeout(() => {
+    effectBox.style.opacity = '0';
+    effectContent.classList.remove('pulse');
+    effectContent.textContent = '';
+  }, 3000);
+}
+
+function triggerDefaultEffect(type) {
+  const effectBox = document.getElementById('effectBox');
+  const effectContent = document.getElementById('effectContent');
+  
+  effectContent.textContent = `✨ ${type.toUpperCase()} ✨`;
+  effectBox.style.opacity = '1';
+  effectContent.classList.add('fade');
+  
+  setTimeout(() => {
+    effectBox.style.opacity = '0';
+    effectContent.classList.remove('fade');
+    effectContent.textContent = '';
+  }, 3000);
 }
