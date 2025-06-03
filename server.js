@@ -1,1334 +1,237 @@
-// server.js - Serveur avec OAuth Twitch intégré
+// server.js - Point d'entrée refactorisé
 const express = require('express');
 const http = require('http');
-const WebSocket = require('ws');
-const fs = require('fs');
 const path = require('path');
-const TwitchChat = require('./server/twitch');
 
-// Variable globale pour le chat
-let twitchChat = null;
-
-// Modules serveur
+// Modules
+const { createConfig } = require('./server/config');
+const WebSocketManager = require('./server/websocket/manager');
+const ServiceManager = require('./server/services');
+const RouterManager = require('./server/routes');
 const logger = require('./server/logger');
-const validate = require('./server/validator');
-const TwitchOAuth = require('./server/twitch-oauth');
-const TwitchChannelPoints = require('./server/twitch-channel-points');
-const axios = require('axios');
-const { setupChannelPointsRoutes } = require('./server/routes/channel-points');
 
-const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
-const PORT = process.env.PORT || 3000;
-
-// Configuration des chemins de données
-const DATA_DIR = path.join(__dirname, 'data');
-const STREAM_DATA_PATH = path.join(DATA_DIR, 'stream24h.json');
-const STATUS_DATA_PATH = path.join(DATA_DIR, 'status.json');
-
-// Instances globales
-let twitchOAuth = null;
-let channelPointsManager = null;
-let connections = new Map();
-
-// Créer le dossier data s'il n'existe pas
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  logger.log('Dossier data créé');
-}
-
-// Initialiser les fichiers de données
-function initializeDataFiles() {
-  if (!fs.existsSync(STREAM_DATA_PATH)) {
-    const defaultPlanning = {
-      planning: [
-        { time: "10:30", label: "Ouverture + café avec la commu", checked: false },
-        { time: "12:00", label: "Jeu co-streamé #1", checked: false },
-        { time: "14:00", label: "Moment #1 : Le chat décide !", checked: false },
-        { time: "16:00", label: "Dev en live avec la commu", checked: false },
-        { time: "18:00", label: "Cuisine du soir + échanges", checked: false },
-        { time: "20:00", label: "Stream musical", checked: false }
-      ]
-    };
-    fs.writeFileSync(STREAM_DATA_PATH, JSON.stringify(defaultPlanning, null, 2));
-    logger.log('Fichier de planning initialisé');
+class StreamServer {
+  constructor() {
+    this.config = null;
+    this.app = null;
+    this.server = null;
+    this.wsManager = null;
+    this.serviceManager = null;
+    this.routerManager = null;
   }
 
-  if (!fs.existsSync(STATUS_DATA_PATH)) {
-    const defaultStatus = {
-      donation_total: 0,
-      donation_goal: 1000,
-      subs_total: 0,
-      subs_goal: 50,
-      stream_start_time: null,
-      last_update: new Date().toISOString()
-    };
-    fs.writeFileSync(STATUS_DATA_PATH, JSON.stringify(defaultStatus, null, 2));
-    logger.log('Fichier de statut initialisé');
-  }
-}
+  async initialize() {
+    try {
+      // Configuration
+      this.config = createConfig();
+      logger.log('✅ Configuration initialisée');
 
-// Middleware
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json());
-
-// Initialisation
-initializeDataFiles();
-
-// ======= INITIALISATION OAUTH TWITCH =======
-
-function initializeTwitchOAuth() {
-  try {
-    twitchOAuth = new TwitchOAuth();
-    twitchOAuth.setupRoutes(app);
-    
-    // Initialiser Channel Points ET Chat si connecté
-    if (twitchOAuth.isConnected()) {
-      logger.log('OAuth Twitch connecté, initialisation des services...');
+      // Express app
+      this.app = express();
+      this.server = http.createServer(this.app);
       
-      const initChannelPoints = initializeChannelPoints();
-      const initChat = initializeTwitchChat();
+      // Middleware de base
+      this.setupMiddleware();
       
-      if (initChannelPoints) {
-        logger.log('✅ Channel Points initialisé automatiquement');
-      }
+      // WebSocket Manager
+      this.wsManager = new WebSocketManager(this.server, this.config);
       
-      if (initChat) {
-        logger.log('✅ Chat Twitch initialisé automatiquement');
-        setupTwitchChatEvents();
-      }
-    } else {
-      logger.log('OAuth Twitch non connecté - services en attente');
+      // Service Manager
+      this.serviceManager = new ServiceManager(this.config, this.wsManager);
+      
+      // Router Manager
+      this.routerManager = new RouterManager(this.config, this.serviceManager, this.wsManager);
+      
+      // Initialiser les données par défaut
+      this.initializeDefaultData();
+      
+      // Routes
+      this.setupRoutes();
+      
+      // Gestion des erreurs
+      this.setupErrorHandling();
+      
+      logger.log('✅ Serveur initialisé');
+      
+    } catch (error) {
+      logger.error(`💥 Erreur initialisation: ${error.message}`);
+      throw error;
     }
-    
-    logger.log('✅ OAuth Twitch initialisé');
-  } catch (error) {
-    logger.error(`Erreur initialisation OAuth Twitch: ${error.message}`);
   }
-}
 
-function initializeTwitchChat() {
-  try {
-    const tokens = twitchOAuth.getCurrentTokens();
-    if (!tokens) {
-      logger.log('Pas de tokens pour le chat Twitch');
-      return false;
-    }
-
-    // Configurer le chat avec les tokens OAuth
-    const chatConfig = {
-      enabled: true,
-      twitch: {
-        clientId: process.env.TWITCH_CLIENT_ID,
-        username: tokens.login,
-        oauthToken: tokens.access_token,
-        channelName: tokens.login
-      }
-    };
-
-    // Initialiser le module chat
-    twitchChat = TwitchChat;
-    twitchChat.initialize();
+  setupMiddleware() {
+    this.app.use(express.static(this.config.get('paths.publicDir')));
+    this.app.use(express.json());
     
-    logger.log('✅ Chat Twitch initialisé');
-    return true;
-  } catch (error) {
-    logger.error(`Erreur initialisation chat Twitch: ${error.message}`);
-    return false;
+    // Middleware de sécurité basique
+    this.app.use((req, res, next) => {
+      res.header('X-Content-Type-Options', 'nosniff');
+      res.header('X-Frame-Options', 'DENY');
+      res.header('X-XSS-Protection', '1; mode=block');
+      next();
+    });
   }
-}
 
-// Fonction pour écouter les événements de chat
-function setupTwitchChatEvents() {
-  if (!twitchChat) return;
-
-  // Mots-clés pour déclencher des effets
-  const chatEffectKeywords = {
-    '!PerturbQuantique': 'perturbation',
-    '🌀 Perturbation Quantique': 'perturbation',
-    'confetti': 'tada',
-    '!confetti': 'tada',
-    'flash': 'flash',
-    '!flash': 'flash',
-    'zoom': 'zoom',
-    '!zoom': 'zoom',
-    'shake': 'shake',
-    '!shake': 'shake',
-    'bounce': 'bounce',
-    '!bounce': 'bounce',
-    'pulse': 'pulse',
-    '!pulse': 'pulse'
-  };
-
-  // Écouter les événements chat
-  twitchChat.on('chat', (data) => {
-    const message = data.message.toLowerCase().trim();
-    const username = data.username;
+  setupRoutes() {
+    // Routes du RouterManager
+    this.app.use(this.routerManager.getRouter());
     
-    logger.log(`Chat reçu: ${username}: ${message}`);
-    
-    // Chercher un mot-clé dans le message
-    for (const [keyword, effect] of Object.entries(chatEffectKeywords)) {
-      if (message.includes(keyword)) {
-        logger.log(`🎯 Effet chat détecté: ${keyword} → ${effect} par ${username}`);
-        
-        // Déclencher l'effet via WebSocket
-        broadcast({ type: 'effect', value: effect });
-        
-        // Message de confirmation
-        setTimeout(() => {
-          broadcast({ 
-            type: 'message', 
-            value: `${username} a déclenché ${effect} !` 
-          });
-        }, 1000);
-        
-        // Événement pour l'admin
-        broadcast({ 
-          type: 'chat_effect_triggered', 
-          data: {
-            user: username,
-            message: message,
-            keyword: keyword,
-            effect: effect,
-            timestamp: new Date().toISOString()
-          }
-        });
-        
-        break;
+    // Route 404
+    this.app.use('*', (req, res) => {
+      if (req.originalUrl.startsWith('/api/')) {
+        res.status(404).json({ error: 'Route API introuvable' });
+      } else {
+        res.status(404).sendFile(path.join(this.config.get('paths.publicDir'), 'index.html'));
       }
-    }
-  });
+    });
+  }
 
-  logger.log('✅ Écoute des effets chat configurée');
-}
+  setupErrorHandling() {
+    // Gestion des erreurs Express
+    this.app.use((error, req, res, next) => {
+      logger.error(`Erreur Express: ${error.message}`);
+      
+      if (req.originalUrl.startsWith('/api/')) {
+        res.status(500).json({ error: 'Erreur serveur interne' });
+      } else {
+        res.status(500).send('Erreur serveur');
+      }
+    });
 
-function initializeChannelPoints() {
-  try {
-    if (!twitchOAuth || !twitchOAuth.isConnected()) {
-      logger.log('OAuth Twitch non connecté, Channel Points non initialisé');
-      return false;
+    // Erreurs non capturées
+    process.on('uncaughtException', (error) => {
+      logger.error(`Erreur non capturée: ${error.message}`);
+      console.error('Stack:', error.stack);
+    });
+
+    process.on('unhandledRejection', (reason) => {
+      logger.error(`Promesse rejetée: ${reason}`);
+    });
+
+    // Arrêt gracieux
+    const signals = ['SIGTERM', 'SIGINT'];
+    signals.forEach(signal => {
+      process.on(signal, () => {
+        logger.log(`Signal ${signal} reçu, arrêt en cours...`);
+        this.shutdown();
+      });
+    });
+  }
+
+  initializeDefaultData() {
+    const fs = require('fs');
+    const { dataDir, streamDataPath, statusDataPath } = this.config.get('paths');
+
+    // Créer dossier data
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
     }
 
-    // Créer le gestionnaire Channel Points
-    channelPointsManager = new TwitchChannelPoints(twitchOAuth);
-    
-    // Configurer les événements
-    setupChannelPointsEvents();
-    
-    logger.log('✅ Channel Points initialisé avec OAuth');
-    return true;
-  } catch (error) {
-    logger.error(`Erreur initialisation Channel Points: ${error.message}`);
-    return false;
-  }
-}
-
-function setupChannelPointsEvents() {
-  if (!channelPointsManager) return;
-
-  // Événement de rachat Channel Points avec support des effets quantiques
-  channelPointsManager.on('redemption', (data) => {
-    logger.log(`💎 Channel Points: ${data.reward.title} par ${data.user.display_name} (${data.reward.cost}pts)`);
-    
-    // Déclencher l'effet correspondant avec données enrichies
-    if (data.effect) {
-      logger.log(`🔮 Déclenchement effet: ${data.effect}`);
-      
-      // Préparer les données pour les effets quantiques
-      const effectData = {
-        userInput: data.redemption.user_input || null,
-        userName: data.user.display_name,
-        rewardTitle: data.reward.title,
-        cost: data.reward.cost,
-        timestamp: new Date().toISOString()
+    // Planning par défaut
+    if (!fs.existsSync(streamDataPath)) {
+      const defaultPlanning = {
+        planning: [
+          { time: "10:30", label: "Ouverture + café avec la commu", checked: false },
+          { time: "12:00", label: "Jeu co-streamé #1", checked: false },
+          { time: "14:00", label: "Moment #1 : Le chat décide !", checked: false },
+          { time: "16:00", label: "Dev en live avec la commu", checked: false },
+          { time: "18:00", label: "Cuisine du soir + échanges", checked: false },
+          { time: "20:00", label: "Stream musical", checked: false }
+        ]
       };
+      fs.writeFileSync(streamDataPath, JSON.stringify(defaultPlanning, null, 2));
+    }
+
+    // Status par défaut
+    if (!fs.existsSync(statusDataPath)) {
+      const defaultStatus = {
+        donation_total: 0,
+        donation_goal: 1000,
+        subs_total: 0,
+        subs_goal: 50,
+        stream_start_time: null,
+        last_update: new Date().toISOString()
+      };
+      fs.writeFileSync(statusDataPath, JSON.stringify(defaultStatus, null, 2));
+    }
+  }
+
+  async start() {
+    try {
+      await this.initialize();
       
-      // Diffuser l'effet avec données
-      broadcast({ 
-        type: 'effect', 
-        value: data.effect,
-        data: effectData 
+      // Démarrer les services
+      await this.serviceManager.start();
+      
+      // Démarrer le serveur HTTP
+      const port = this.config.get('server.port');
+      
+      this.server.listen(port, () => {
+        this.logStartupInfo(port);
       });
       
-      // Message de confirmation adapté à l'effet
-      setTimeout(() => {
-        let confirmMessage = `${data.user.display_name} a utilisé "${data.reward.title}"`;
-        
-        // Messages spéciaux pour les effets quantiques
-        switch (data.effect) {
-          case 'quantum_collapse':
-            confirmMessage += ' - Réponse instantanée requise !';
-            break;
-          case 'temporal_rewind':
-            confirmMessage += ' - Répète ta dernière phrase !';
-            break;
-          case 'cognitive_collapse':
-            confirmMessage += ' - Explique comme à un enfant !';
-            break;
-          case 'butterfly_effect':
-            confirmMessage += ' - Effet Papillon activé pour 5 minutes !';
-            break;
-          case 'quantum_consciousness':
-            confirmMessage += ' - Citation mystérieuse révélée !';
-            break;
-          default:
-            confirmMessage += ' !';
-        }
-        
-        broadcast({ type: 'message', value: confirmMessage });
-        logger.log(`💬 Message envoyé: ${confirmMessage}`);
-      }, 1500);
+    } catch (error) {
+      logger.error(`💥 Erreur démarrage: ${error.message}`);
+      process.exit(1);
     }
-    
-    // Diffuser l'événement aux clients admin avec plus de détails
-    broadcast({ 
-      type: 'channel_points_event', 
-      data: {
-        reward: data.reward.title,
-        user: data.user.display_name,
-        cost: data.reward.cost,
-        effect: data.effect,
-        user_input: data.redemption.user_input,
-        timestamp: new Date().toISOString(),
-        event_type: 'live'
-      }
-    });
-    
-    // Log détaillé pour debug et analytics
-    logger.activity('channel_points_redemption', {
-      reward_id: data.reward.id,
-      reward_title: data.reward.title,
-      user_id: data.user.id,
-      user_name: data.user.display_name,
-      cost: data.reward.cost,
-      effect: data.effect,
-      user_input: data.redemption.user_input,
-      redeemed_at: data.redemption.redeemed_at
-    });
-  });
-
-  // Événements de monitoring avec plus de détails
-  channelPointsManager.on('monitoring:started', () => {
-    logger.log('🎯 Surveillance Channel Points démarrée');
-    const status = channelPointsManager.getStatus();
-    broadcast({ 
-      type: 'channel_points_status', 
-      data: { 
-        monitoring: true,
-        partner_status: status.hasPartnerStatus,
-        effects_count: status.rewardEffectsCount,
-        timestamp: new Date().toISOString()
-      }
-    });
-  });
-
-  channelPointsManager.on('monitoring:stopped', () => {
-    logger.log('🎯 Surveillance Channel Points arrêtée');
-    broadcast({ 
-      type: 'channel_points_status', 
-      data: { 
-        monitoring: false,
-        timestamp: new Date().toISOString()
-      }
-    });
-  });
-
-  // Gestion des erreurs avec notification admin
-  channelPointsManager.on('error', (error) => {
-    logger.error(`Erreur Channel Points: ${error.message}`);
-    
-    // Déterminer le type d'erreur
-    let errorType = 'general';
-    if (error.message.includes('403')) errorType = 'permissions';
-    if (error.message.includes('401')) errorType = 'authentication';
-    if (error.message.includes('Statut insuffisant')) errorType = 'partner_status';
-    
-    broadcast({ 
-      type: 'channel_points_error', 
-      data: { 
-        error: error.message,
-        error_type: errorType,
-        timestamp: new Date().toISOString(),
-        requires_action: errorType !== 'general'
-      }
-    });
-  });
-
-  logger.log('✅ Événements Channel Points quantiques configurés');
-}
-
-function setupTwitchChatEvents() {
-  if (!twitchOAuth || !twitchOAuth.isConnected()) {
-    return;
   }
 
-  // Mots-clés pour déclencher des effets
-  const chatEffectKeywords = {
-    'perturbation': 'perturbation',
-    'perturbation quantique': 'perturbation', 
-    '!perturbation': 'perturbation',
-    'confetti': 'tada',
-    '!confetti': 'tada',
-    'flash': 'flash',
-    '!flash': 'flash',
-    'zoom': 'zoom',
-    '!zoom': 'zoom',
-    'shake': 'shake',
-    '!shake': 'shake',
-    'bounce': 'bounce',
-    '!bounce': 'bounce',
-    'pulse': 'pulse',
-    '!pulse': 'pulse'
-  };
-
-  // Écouteur d'événements chat depuis le module Twitch
-  const twitch = require('./server/twitch');
-  
-  twitch.on('chat', (data) => {
-    const message = data.message.toLowerCase().trim();
-    const username = data.username;
+  logStartupInfo(port) {
+    const twitchOAuth = this.serviceManager.getTwitchOAuth();
+    const channelPoints = this.serviceManager.getChannelPoints();
     
-    // Chercher un mot-clé dans le message
-    for (const [keyword, effect] of Object.entries(chatEffectKeywords)) {
-      if (message.includes(keyword)) {
-        logger.log(`Effet chat détecté: ${keyword} → ${effect} par ${username}`);
-        
-        // Déclencher l'effet
-        broadcast({ type: 'effect', value: effect });
-        
-        // Message de confirmation après l'effet
-        setTimeout(() => {
-          broadcast({ 
-            type: 'message', 
-            value: `${username} a déclenché ${keyword} !` 
-          });
-        }, 1000);
-        
-        // Ne déclencher qu'un seul effet par message
-        break;
+    logger.log(`✨ Serveur Stream 24h démarré sur le port ${port}`);
+    logger.log(`🌐 Interface publique: http://localhost:${port}`);
+    logger.log(`⚙️  Interface admin: http://localhost:${port}/admin.html`);
+    logger.log(`📺 Overlay OBS: http://localhost:${port}/overlay/`);
+    logger.log(`📊 Status OBS: http://localhost:${port}/status.html`);
+    logger.log(`💬 WebSocket: ${this.wsManager.getStats().currentConnections} connexions`);
+    logger.log(`🎮 Twitch OAuth: ${twitchOAuth?.isConnected() ? 'Connecté' : 'Déconnecté'}`);
+    logger.log(`💎 Channel Points: ${channelPoints ? 'Initialisé' : 'Non initialisé'}`);
+    
+    if (this.config.isDevelopment()) {
+      logger.log(`🔧 Mode développement actif`);
+      logger.log(`📋 Config: ${JSON.stringify(this.config.export(), null, 2)}`);
+    }
+  }
+
+  async shutdown() {
+    logger.log('🔌 Arrêt du serveur...');
+
+    try {
+      // Arrêter les services
+      if (this.serviceManager) {
+        await this.serviceManager.stop();
       }
-    }
-  });
-}
 
-// ======= FONCTION HELPER POUR RECONNEXION =======
-
-// Fonction pour réinitialiser les services après connexion OAuth
-function reinitializeServicesAfterOAuth() {
-  try {
-    logger.log('🔄 Réinitialisation des services après connexion OAuth...');
-    
-    // Réinitialiser Channel Points
-    if (channelPointsManager) {
-      channelPointsManager.stopMonitoring();
-      channelPointsManager = null;
-    }
-    
-    // Réinitialiser Chat
-    if (twitchChat) {
-      twitchChat = null;
-    }
-    
-    const channelPointsInit = initializeChannelPoints();
-    const chatInit = initializeTwitchChat();
-    
-    if (channelPointsInit) {
-      logger.log('✅ Channel Points réinitialisé');
-      
-      // Auto-configuration des effets
-      setTimeout(async () => {
-        try {
-          const rewards = await channelPointsManager.getAvailableRewards();
-          if (rewards.length > 0) {
-            const autoMappings = {};
-            rewards.forEach(reward => {
-              if (reward.suggestedEffect && reward.suggestedEffect !== 'pulse') {
-                autoMappings[reward.title.toLowerCase()] = reward.suggestedEffect;
-              }
-            });
-            
-            if (Object.keys(autoMappings).length > 0) {
-              channelPointsManager.configureRewardEffects(autoMappings);
-              logger.log(`🎯 Auto-configuration: ${Object.keys(autoMappings).length} effets`);
-            }
-          }
-        } catch (error) {
-          logger.error(`Erreur auto-configuration: ${error.message}`);
-        }
-      }, 3000);
-    }
-    
-    if (chatInit) {
-      setupTwitchChatEvents();
-      logger.log('✅ Chat Twitch réinitialisé');
-    }
-    
-    // Notifier les clients admin
-    broadcast({ 
-      type: 'services_reinitialized', 
-      data: {
-        channel_points: channelPointsInit,
-        chat: chatInit,
-        timestamp: new Date().toISOString()
+      // Arrêter WebSocket
+      if (this.wsManager) {
+        this.wsManager.shutdown();
       }
-    });
-    
-    return true;
-  } catch (error) {
-    logger.error(`Erreur réinitialisation services: ${error.message}`);
-    return false;
+
+      // Arrêter serveur HTTP
+      if (this.server) {
+        this.server.close();
+      }
+
+      // Nettoyer config
+      if (this.config) {
+        this.config.destroy();
+      }
+
+      logger.log('✅ Serveur arrêté proprement');
+      process.exit(0);
+
+    } catch (error) {
+      logger.error(`Erreur arrêt: ${error.message}`);
+      process.exit(1);
+    }
   }
 }
 
-// ======= AJOUTER APRÈS L'INITIALISATION D'OAUTH =======
-// Global function pour réinitialisation depuis OAuth
-global.reinitializeServicesAfterOAuth = reinitializeServicesAfterOAuth;
-
-// Configurer les routes Channel Points complètes
-if (twitchOAuth && channelPointsManager) {
-  setupChannelPointsRoutes(app, twitchOAuth, channelPointsManager, broadcast);
-}
-
-// ======= AJOUTER CETTE ROUTE DE CONFIGURATION RAPIDE =======
-app.post('/api/channel-points/quick-setup', async (req, res) => {
-  try {
-    if (!twitchOAuth?.isConnected()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Connexion Twitch OAuth requise',
-        step: 'oauth'
-      });
-    }
-
-    // Étape 1: Initialiser Channel Points si nécessaire
-    if (!channelPointsManager) {
-      const initialized = initializeChannelPoints();
-      if (!initialized) {
-        return res.status(400).json({
-          success: false,
-          error: 'Impossible d\'initialiser Channel Points',
-          step: 'initialization'
-        });
-      }
-    }
-
-    // Étape 2: Vérifier le statut broadcaster
-    const statusCheck = await channelPointsManager.checkStreamerStatus();
-    if (!statusCheck.success) {
-      return res.status(400).json({
-        success: false,
-        error: statusCheck.error,
-        step: 'status_check'
-      });
-    }
-
-    // Étape 3: Récupérer et auto-configurer les récompenses
-    const rewards = await channelPointsManager.getAvailableRewards();
-    const autoMappings = {};
-    let configuredCount = 0;
-
-    rewards.forEach(reward => {
-      if (reward.suggestedEffect && reward.suggestedEffect !== 'pulse') {
-        autoMappings[reward.title.toLowerCase()] = reward.suggestedEffect;
-        configuredCount++;
-      }
-    });
-
-    if (configuredCount > 0) {
-      channelPointsManager.configureRewardEffects(autoMappings);
-    }
-
-    // Étape 4: Démarrer la surveillance
-    const monitoringStarted = await channelPointsManager.startMonitoring();
-
-    res.json({
-      success: true,
-      message: 'Configuration rapide terminée',
-      setup: {
-        oauth_connected: true,
-        channel_points_initialized: true,
-        partner_status: statusCheck.success,
-        rewards_found: rewards.length,
-        effects_configured: configuredCount,
-        monitoring_started: monitoringStarted
-      },
-      next_steps: monitoringStarted ? 
-        ['Testez un effet depuis l\'admin', 'Créez plus de récompenses si besoin'] :
-        ['Vérifiez votre statut Twitch', 'Consultez les logs pour plus d\'infos']
-    });
-
-    logger.log(`Configuration rapide Channel Points: ${configuredCount} effets sur ${rewards.length} récompenses`);
-
-  } catch (error) {
-    logger.error(`Erreur configuration rapide: ${error.message}`);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      step: 'execution'
-    });
-  }
-});
-
-// ======= ROUTE POUR CRÉER LES RÉCOMPENSES PAR DÉFAUT =======
-app.post('/api/channel-points/create-default-rewards', async (req, res) => {
-  try {
-    if (!twitchOAuth?.isConnected()) {
-      return res.status(400).json({
-        success: false,
-        error: 'OAuth Twitch requis'
-      });
-    }
-
-    const tokens = await twitchOAuth.ensureValidTokens();
-    const userInfo = twitchOAuth.getConnectionInfo();
-    
-    const defaultRewards = [
-      {
-        title: '🌀 Perturbation Quantique',
-        cost: 500,
-        prompt: 'Déclenche une perturbation visuelle mystérieuse',
-        background_color: 'BLUE'
-      },
-      {
-        title: '⚡ Effondrement Fonction d\'Onde',
-        cost: 750,
-        prompt: 'Demande une réponse instantanée du streamer',
-        background_color: 'PURPLE'
-      },
-      {
-        title: '🔄 Recul Temporel Localisé',
-        cost: 1000,
-        prompt: 'Le streamer doit répéter sa dernière phrase',
-        background_color: 'GREEN'
-      },
-      {
-        title: '🧠 Collapse Cognitif',
-        cost: 1500,
-        prompt: 'Expliquer un concept complexe comme à un enfant',
-        background_color: 'PINK'
-      },
-      {
-        title: '🦋 Effet Papillon',
-        cost: 1200,
-        prompt: 'Mutations visuelles pendant 5 minutes',
-        background_color: 'ORANGE'
-      }
-    ];
-
-    const createdRewards = [];
-    const errors = [];
-
-    for (const reward of defaultRewards) {
-      try {
-        const response = await axios.post(
-          `https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id=${userInfo.user.id}`,
-          {
-            ...reward,
-            is_enabled: true,
-            is_user_input_required: false
-          },
-          {
-            headers: {
-              'Client-ID': twitchOAuth.clientId,
-              'Authorization': `Bearer ${tokens.access_token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        createdRewards.push(response.data.data[0]);
-        logger.log(`Récompense créée: ${reward.title}`);
-
-      } catch (error) {
-        errors.push({
-          reward: reward.title,
-          error: error.response?.data?.message || error.message
-        });
-      }
-    }
-
-    res.json({
-      success: createdRewards.length > 0,
-      message: `${createdRewards.length} récompenses créées`,
-      created: createdRewards.length,
-      total: defaultRewards.length,
-      errors: errors
-    });
-
-  } catch (error) {
-    logger.error(`Erreur création récompenses par défaut: ${error.message}`);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// ======= WEBHOOKS POUR INTEGRATION EXTERNE =======
-app.post('/webhooks/channel-points', (req, res) => {
-  try {
-    const { reward, user, effect } = req.body;
-    
-    if (!reward || !user || !effect) {
-      return res.status(400).json({ error: 'Données manquantes' });
-    }
-
-    // Simulation d'événement externe
-    const eventData = {
-      reward: { title: reward, cost: 0 },
-      user: { display_name: user },
-      effect: effect,
-      redemption: { user_input: null },
-      timestamp: new Date().toISOString()
-    };
-
-    // Déclencher l'effet
-    broadcast({ type: 'effect', value: effect });
-    
-    setTimeout(() => {
-      broadcast({ 
-        type: 'message', 
-        value: `🌐 WEBHOOK: ${user} a déclenché ${effect}` 
-      });
-    }, 1000);
-
-    res.json({ success: true, message: 'Effet déclenché via webhook' });
-    logger.log(`Webhook Channel Points: ${effect} par ${user}`);
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ======= ROUTE API AMÉLIORÉE POUR DEBUG =======
-
-// GET - Statut détaillé du système
-app.get('/api/system/status', (req, res) => {
-  try {
-    const twitchConnected = twitchOAuth && twitchOAuth.isConnected();
-    const twitchInfo = twitchConnected ? twitchOAuth.getConnectionInfo() : null;
-    
-    const channelPointsStatus = channelPointsManager ? channelPointsManager.getStatus() : null;
-    
-    res.json({
-      timestamp: new Date().toISOString(),
-      server: {
-        uptime: process.uptime(),
-        connections: connections.size
-      },
-      twitch: {
-        oauth_connected: twitchConnected,
-        user: twitchInfo ? twitchInfo.user : null,
-        scopes: twitchInfo ? twitchInfo.scopes : null
-      },
-      channel_points: {
-        initialized: !!channelPointsManager,
-        monitoring: channelPointsStatus ? channelPointsStatus.isMonitoring : false,
-        effects_count: channelPointsStatus ? channelPointsStatus.rewardEffectsCount : 0,
-        events_processed: channelPointsStatus ? channelPointsStatus.eventSubscriptionsCount : 0
-      },
-      chat: {
-        initialized: !!twitchChat
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// POST - Réinitialiser les services
-app.post('/api/system/reinitialize', (req, res) => {
-  try {
-    const result = reinitializeServicesAfterOAuth();
-    
-    res.json({
-      success: result,
-      message: result ? 'Services réinitialisés' : 'Échec réinitialisation',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-
-// Initialiser OAuth au démarrage
-initializeTwitchOAuth();
-
-// ======= WEBSOCKET =======
-
-wss.on('connection', (ws, req) => {
-  const id = Date.now() + Math.random();
-  const clientIp = req.socket.remoteAddress;
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const clientType = url.searchParams.get('type') || 'unknown';
-  
-  connections.set(id, { ws, type: clientType });
-  logger.log(`Nouvelle connexion WebSocket: ${clientType} (${clientIp})`);
-  
-  sendInitialData(ws);
-  
-  ws.on('close', () => {
-    connections.delete(id);
-    logger.log(`Déconnexion WebSocket: ${clientType}`);
-  });
-  
-  ws.on('error', (error) => {
-    logger.error(`Erreur WebSocket ${clientType}: ${error.message}`);
-    connections.delete(id);
-  });
-});
-
-function sendInitialData(ws) {
-  try {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'init', status: 'connected' }));
-    }
-  } catch (err) {
-    logger.error(`Erreur envoi données initiales: ${err.message}`);
-  }
-}
-
-function broadcast(data, filterType = null) {
-  const message = typeof data === 'string' ? data : JSON.stringify(data);
-  let count = 0;
-  
-  connections.forEach((client, id) => {
-    if (!filterType || client.type === filterType) {
-      try {
-        if (client.ws.readyState === WebSocket.OPEN) {
-          client.ws.send(message);
-          count++;
-        } else {
-          connections.delete(id);
-        }
-      } catch (err) {
-        logger.error(`Erreur diffusion: ${err.message}`);
-        connections.delete(id);
-      }
-    }
-  });
-  
-  if (count > 0) {
-    const preview = typeof data === 'string' ? data.substring(0, 50) : JSON.stringify(data).substring(0, 50);
-    logger.log(`Message diffusé à ${count} clients: ${preview}...`);
-  }
-}
-
-// ======= ROUTES API CHANNEL POINTS =======
-
-// GET - Statut des Channel Points
-app.get('/api/channel-points/status', (req, res) => {
-  try {
-    if (!twitchOAuth || !twitchOAuth.isConnected()) {
-      return res.json({
-        enabled: false,
-        monitoring: false,
-        message: 'Twitch non connecté'
-      });
-    }
-
-    if (!channelPointsManager) {
-      return res.json({
-        enabled: true,
-        monitoring: false,
-        message: 'Channel Points non initialisé'
-      });
-    }
-    
-    const status = channelPointsManager.getStatus();
-    
-    res.json({
-      enabled: true,
-      monitoring: status.isMonitoring,
-      rewardEffectsCount: status.rewardEffectsCount,
-      eventSubscriptionsCount: status.eventSubscriptionsCount,
-      lastEventId: status.lastEventId
-    });
-  } catch (error) {
-    logger.error(`Erreur statut Channel Points: ${error.message}`);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// POST - Démarrer/Arrêter surveillance Channel Points
-app.post('/api/channel-points/monitoring/:action', async (req, res) => {
-  try {
-    const { action } = req.params;
-    
-    if (!twitchOAuth || !twitchOAuth.isConnected()) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Twitch non connecté' 
-      });
-    }
-
-    // Initialiser Channel Points si nécessaire
-    if (!channelPointsManager) {
-      const initialized = initializeChannelPoints();
-      if (!initialized) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Impossible d\'initialiser Channel Points' 
-        });
-      }
-    }
-    
-    let result = false;
-    
-    if (action === 'start') {
-      result = await channelPointsManager.startMonitoring();
-    } else if (action === 'stop') {
-      channelPointsManager.stopMonitoring();
-      result = true;
-    } else {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Action invalide' 
-      });
-    }
-    
-    const status = channelPointsManager.getStatus();
-    
-    res.json({
-      success: result,
-      monitoring: status.isMonitoring,
-      message: result ? 
-        `Surveillance ${action === 'start' ? 'démarrée' : 'arrêtée'}` :
-        `Impossible de ${action === 'start' ? 'démarrer' : 'arrêter'} la surveillance`
-    });
-    
-    logger.log(`Channel Points monitoring ${action}: ${result ? 'succès' : 'échec'}`);
-    
-  } catch (error) {
-    logger.error(`Erreur ${req.params.action} monitoring: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-
-// GET - Récompenses disponibles
-app.get('/api/channel-points/rewards', async (req, res) => {
-  try {
-    if (!channelPointsManager) {
-      return res.json({ success: true, rewards: [], count: 0 });
-    }
-    
-    const rewards = await channelPointsManager.getAvailableRewards();
-    
-    res.json({
-      success: true,
-      rewards: rewards,
-      count: rewards.length
-    });
-    
-  } catch (error) {
-    logger.error(`Erreur récupération récompenses: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message,
-      rewards: []
-    });
-  }
-});
-
-// POST - Configurer mappings effets
-app.post('/api/channel-points/configure', (req, res) => {
-  try {
-    const { rewardEffects } = req.body;
-    
-    if (!channelPointsManager) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Channel Points non initialisé' 
-      });
-    }
-    
-    if (!rewardEffects || typeof rewardEffects !== 'object') {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Configuration invalide' 
-      });
-    }
-    
-    channelPointsManager.configureRewardEffects(rewardEffects);
-    
-    res.json({
-      success: true,
-      message: 'Configuration mise à jour',
-      mappingsCount: Object.keys(rewardEffects).length
-    });
-    
-    logger.log(`Channel Points configuré: ${Object.keys(rewardEffects).length} mappings`);
-    
-  } catch (error) {
-    logger.error(`Erreur configuration: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-
-// POST - Test effet
-app.post('/api/channel-points/test-effect', async (req, res) => {
-  try {
-    const { effectType, userName = 'TestUser', rewardTitle = 'Test' } = req.body;
-    
-    if (!effectType) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Type d\'effet requis' 
-      });
-    }
-    
-    const validEffects = ['perturbation', 'tada', 'flash', 'zoom', 'shake', 'bounce', 'pulse'];
-    if (!validEffects.includes(effectType)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Effet invalide: ${validEffects.join(', ')}` 
-      });
-    }
-    
-    // Déclencher l'effet
-    broadcast({ type: 'effect', value: effectType });
-    
-    setTimeout(() => {
-      broadcast({ 
-        type: 'message', 
-        value: `🧪 TEST: ${userName} a utilisé "${rewardTitle}" !` 
-      });
-    }, 1000);
-    
-    res.json({
-      success: true,
-      message: `Effet "${effectType}" déclenché`,
-      effect: effectType
-    });
-    
-    logger.log(`Test effet: ${effectType} pour ${userName}`);
-    
-  } catch (error) {
-    logger.error(`Erreur test effet: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-
-// POST - Nettoyer événements
-app.post('/api/channel-points/cleanup', (req, res) => {
-  try {
-    if (channelPointsManager) {
-      channelPointsManager.cleanupOldEvents();
-    }
-    
-    res.json({
-      success: true,
-      message: 'Nettoyage effectué'
-    });
-    
-    logger.log('Nettoyage manuel Channel Points');
-    
-  } catch (error) {
-    logger.error(`Erreur nettoyage: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-
-// ======= ROUTES API STANDARD =======
-
-// Planning
-app.get('/api/planning', (req, res) => {
-  try {
-    const data = fs.readFileSync(STREAM_DATA_PATH, 'utf8');
-    res.json(JSON.parse(data));
-  } catch (err) {
-    logger.error(`Erreur lecture planning: ${err.message}`);
-    res.status(500).json({ error: 'Erreur lecture planning' });
-  }
-});
-
-app.post('/api/planning', (req, res) => {
-  try {
-    const data = req.body;
-    
-    if (!data.planning || !Array.isArray(data.planning)) {
-      return res.status(400).json({ error: 'Format invalide' });
-    }
-    
-    for (const item of data.planning) {
-      if (!validate.planningItem(item)) {
-        return res.status(400).json({ error: 'Élément invalide' });
-      }
-    }
-
-    data.planning.sort((a, b) => a.time.localeCompare(b.time));
-    fs.writeFileSync(STREAM_DATA_PATH, JSON.stringify(data, null, 2));
-    
-    broadcast({ type: 'update', target: 'planning' });
-    
-    logger.log('Planning mis à jour');
-    res.json({ status: 'success' });
-  } catch (err) {
-    logger.error(`Erreur planning: ${err.message}`);
-    res.status(500).json({ error: 'Erreur mise à jour planning' });
-  }
-});
-
-// Statut
-app.get('/api/status', (req, res) => {
-  try {
-    const data = fs.readFileSync(STATUS_DATA_PATH, 'utf8');
-    res.json(JSON.parse(data));
-  } catch (err) {
-    logger.error(`Erreur lecture statut: ${err.message}`);
-    res.status(500).json({ error: 'Erreur lecture statut' });
-  }
-});
-
-app.post('/api/status', (req, res) => {
-  try {
-    const data = req.body;
-    
-    if (!validate.statusData(data)) {
-      return res.status(400).json({ error: 'Format invalide' });
-    }
-    
-    data.last_update = new Date().toISOString();
-    fs.writeFileSync(STATUS_DATA_PATH, JSON.stringify(data, null, 2));
-    
-    broadcast({ type: 'update', target: 'status' });
-    
-    logger.log('Statut mis à jour');
-    res.json({ status: 'success' });
-  } catch (err) {
-    logger.error(`Erreur statut: ${err.message}`);
-    res.status(500).json({ error: 'Erreur mise à jour statut' });
-  }
-});
-
-// ======= ROUTES API TWITCH/STREAMLABS =======
-
-// POST - Test connexion Twitch
-app.post('/api/twitch/test', async (req, res) => {
-  try {
-    if (!twitchOAuth || !twitchOAuth.isConnected()) {
-      return res.json({
-        success: false,
-        message: 'OAuth Twitch non connecté'
-      });
-    }
-
-    // Utiliser la méthode de test existante du Channel Points
-    if (channelPointsManager) {
-      const testResult = await channelPointsManager.testTwitchAPI();
-      
-      res.json({
-        success: testResult.success,
-        message: testResult.success ? 'Connexion Twitch réussie' : testResult.error,
-        data: testResult.user || null
-      });
-    } else {
-      // Test basique avec les tokens OAuth
-      const tokens = await twitchOAuth.ensureValidTokens();
-      if (!tokens) {
-        return res.json({
-          success: false,
-          message: 'Tokens Twitch invalides'
-        });
-      }
-
-      const userInfo = twitchOAuth.getConnectionInfo();
-      
-      res.json({
-        success: true,
-        message: 'Connexion OAuth valide',
-        data: {
-          user: userInfo.user,
-          scopes: userInfo.scopes,
-          expires_at: userInfo.expires_at
-        }
-      });
-    }
-
-  } catch (error) {
-    logger.error(`Erreur test connexion Twitch: ${error.message}`);
-    res.json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-// GET - Configuration Twitch
-app.get('/api/twitch/config', (req, res) => {
-  try {
-    if (!twitchOAuth) {
-      return res.json({
-        enabled: false,
-        connected: false,
-        config: null
-      });
-    }
-
-    const info = twitchOAuth.getConnectionInfo();
-    
-    res.json({
-      enabled: true,
-      connected: info.connected,
-      config: info.connected ? {
-        user: info.user,
-        scopes: info.scopes,
-        expires_at: info.expires_at
-      } : null
-    });
-
-  } catch (error) {
-    logger.error(`Erreur config Twitch: ${error.message}`);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// POST - Configuration temporaire Twitch (pour compatibilité)
-app.post('/api/twitch/config', (req, res) => {
-  try {
-    // Cette route est maintenue pour compatibilité avec l'admin
-    // Mais avec OAuth, la configuration se fait via la connexion
-    
-    res.json({
-      success: true,
-      message: 'Avec OAuth, utilisez la connexion Twitch pour configurer',
-      config: twitchOAuth ? twitchOAuth.getConnectionInfo() : null
-    });
-
-  } catch (error) {
-    logger.error(`Erreur config Twitch: ${error.message}`);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// GET - Statut connexion Twitch  
-app.get('/api/twitch/status', (req, res) => {
-  try {
-    const connected = twitchOAuth && twitchOAuth.isConnected();
-    res.json({ connected });
-  } catch (error) {
-    res.status(500).json({ connected: false, error: error.message });
-  }
-});
-
-// GET - Statut connexion Streamlabs
-app.get('/api/streamlabs/status', (req, res) => {
-  try {
-    // Basé sur la présence de tokens Streamlabs dans la config
-    const tokens = twitchOAuth ? twitchOAuth.getCurrentTokens() : null;
-    const connected = tokens && process.env.STREAMLABS_SOCKET_TOKEN;
-    res.json({ connected: !!connected });
-  } catch (error) {
-    res.status(500).json({ connected: false, error: error.message });
-  }
-});
-
-// Effets
-app.post('/api/effect', (req, res) => {
-  try {
-    const { type } = req.body;
-    
-    if (!type || typeof type !== 'string') {
-      return res.status(400).json({ error: 'Type effet manquant' });
-    }
-    
-    const validEffects = ['perturbation', 'tada', 'flash', 'zoom', 'shake', 'bounce', 'pulse'];
-    if (!validEffects.includes(type)) {
-      return res.status(400).json({ error: 'Type effet invalide' });
-    }
-    
-    broadcast({ type: 'effect', value: type });
-    
-    logger.log(`Effet déclenché: ${type}`);
-    res.json({ status: 'triggered' });
-  } catch (err) {
-    logger.error(`Erreur effet: ${err.message}`);
-    res.status(500).json({ error: 'Erreur effet' });
-  }
-});
-
-// Messages
-app.post('/api/message', (req, res) => {
-  try {
-    const { message } = req.body;
-    
-    if (!message || typeof message !== 'string' || message.length > 200) {
-      return res.status(400).json({ error: 'Message invalide' });
-    }
-    
-    broadcast({ type: 'message', value: message });
-    
-    logger.log(`Message envoyé: ${message.substring(0, 30)}...`);
-    res.json({ status: 'sent' });
-  } catch (err) {
-    logger.error(`Erreur message: ${err.message}`);
-    res.status(500).json({ error: 'Erreur message' });
-  }
-});
-
-// Logs
-app.get('/api/logs', (req, res) => {
-  try {
-    const logs = logger.getLogs();
-    res.json({ logs });
-  } catch (err) {
-    logger.error(`Erreur logs: ${err.message}`);
-    res.status(500).json({ error: 'Erreur logs' });
-  }
-});
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    connections: connections.size,
-    uptime: process.uptime(),
-    twitch: {
-      oauth_connected: twitchOAuth ? twitchOAuth.isConnected() : false,
-      channel_points: {
-        initialized: !!channelPointsManager,
-        monitoring: channelPointsManager ? channelPointsManager.getStatus().isMonitoring : false
-      }
-    }
-  });
-});
-
-// Gestion des erreurs
-process.on('uncaughtException', (error) => {
-  logger.error(`Erreur non capturée: ${error.message}`);
-  console.error('Stack:', error.stack);
-});
-
-process.on('unhandledRejection', (reason) => {
-  logger.error(`Promesse rejetée: ${reason}`);
-});
-
-// Démarrage du serveur
-server.listen(PORT, () => {
-  logger.log(`✨ Serveur Stream 24h démarré sur le port ${PORT}`);
-  logger.log(`🌐 Interface publique: http://localhost:${PORT}`);
-  logger.log(`⚙️  Interface admin: http://localhost:${PORT}/admin.html`);
-  logger.log(`📺 Overlay OBS: http://localhost:${PORT}/overlay/`);
-  logger.log(`📊 Status OBS: http://localhost:${PORT}/status.html`);
-  logger.log(`💬 WebSocket: ${connections.size} connexions`);
-  logger.log(`🎮 Twitch OAuth: ${twitchOAuth ? (twitchOAuth.isConnected() ? 'Connecté' : 'Déconnecté') : 'Non initialisé'}`);
-  logger.log(`💎 Channel Points: ${channelPointsManager ? 'Initialisé' : 'Non initialisé'}`);
+// Démarrage
+const server = new StreamServer();
+server.start().catch(error => {
+  console.error('💥 Échec critique:', error);
+  process.exit(1);
 });
