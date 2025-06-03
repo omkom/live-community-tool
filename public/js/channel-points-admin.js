@@ -119,26 +119,6 @@ class ChannelPointsAdmin {
               </div>
             </div>
 
-            <!-- Configuration avancée -->
-            <div class="cp-section">
-              <h4><i class="fas fa-tools"></i> Configuration Avancée</h4>
-              <div class="cp-advanced-actions">
-                <button class="btn btn-sm" id="cp-auto-configure"><i class="fas fa-magic"></i> Auto-configurer</button>
-                <button class="btn btn-sm" id="cp-quick-setup"><i class="fas fa-rocket"></i> Configuration Rapide</button>
-                <button class="btn btn-sm" id="cp-create-default"><i class="fas fa-plus-circle"></i> Créer Récompenses Défault</button>
-              </div>
-            </div>
-
-            <!-- Diagnostic & Métriques -->
-            <div class="cp-section">
-              <h4><i class="fas fa-stethoscope"></i> Diagnostic & Métriques</h4>
-              <div class="cp-advanced-actions">
-                <button class="btn btn-sm" id="cp-diagnostic"><i class="fas fa-search"></i> Diagnostic</button>
-                <button class="btn btn-sm" id="cp-metrics"><i class="fas fa-chart-bar"></i> Métriques</button>
-              </div>
-              <pre id="cp-diagnostic-output" class="cp-output"></pre>
-              <pre id="cp-metrics-output" class="cp-output"></pre>
-            </div>
 
             <!-- Historique des Événements -->
             <div class="cp-section">
@@ -159,8 +139,21 @@ class ChannelPointsAdmin {
                   <i class="fas fa-trash"></i> Nettoyer
                 </button>
               </h4>
-              <div id="cp-events-log" class="cp-events-log">
+            <div id="cp-events-log" class="cp-events-log">
                 <div class="cp-no-events">Aucun événement Channel Points récent</div>
+              </div>
+            </div>
+
+            <!-- Logs du Stream -->
+            <div class="cp-section">
+              <h4>
+                <i class="fas fa-stream"></i> Logs du Stream
+                <button class="btn btn-sm" id="cp-clear-stream-log">
+                  <i class="fas fa-trash"></i> Nettoyer
+                </button>
+              </h4>
+              <div id="cp-stream-log" class="cp-events-log">
+                <div class="cp-no-events">Aucun log du Stream</div>
               </div>
             </div>
           </div>
@@ -199,23 +192,8 @@ class ChannelPointsAdmin {
         this.testQuantumEffect();
       });
 
-      // Configuration avancée
-      document.getElementById('cp-auto-configure').addEventListener('click', () => {
-        this.autoConfigure();
-      });
-      document.getElementById('cp-quick-setup').addEventListener('click', () => {
-        this.quickSetup();
-      });
-      document.getElementById('cp-create-default').addEventListener('click', () => {
-        this.createDefaultRewards();
-      });
-
-      // Diagnostic & métriques
-      document.getElementById('cp-diagnostic').addEventListener('click', () => {
-        this.fetchDiagnostic();
-      });
-      document.getElementById('cp-metrics').addEventListener('click', () => {
-        this.fetchMetrics();
+      document.getElementById('cp-clear-stream-log').addEventListener('click', () => {
+        this.clearStreamLog();
       });
 
       // Historique des événements
@@ -566,9 +544,49 @@ class ChannelPointsAdmin {
         effect: data.effect,
         timestamp: data.timestamp
       });
-      
+
       // Rafraîchir le statut
       setTimeout(() => this.loadStatus(), 1000);
+    }
+
+    clearStreamLog() {
+      const container = document.getElementById('cp-stream-log');
+      if (container) {
+        container.innerHTML = '<div class="cp-no-events">Aucun log du Stream</div>';
+      }
+    }
+
+    addStreamLog(message) {
+      const logContainer = document.getElementById('cp-stream-log');
+      if (!logContainer) return;
+
+      const noLogs = logContainer.querySelector('.cp-no-events');
+      if (noLogs) logContainer.removeChild(noLogs);
+
+      const entry = document.createElement('div');
+      const time = new Date().toLocaleTimeString();
+      entry.className = 'cp-event-item';
+      entry.innerHTML = `
+        <div class="cp-event-header">
+          <span class="cp-event-time">${time}</span>
+        </div>
+        <div class="cp-event-details">${message}</div>
+      `;
+
+      logContainer.insertBefore(entry, logContainer.firstChild);
+
+      const items = logContainer.querySelectorAll('.cp-event-item');
+      if (items.length > 10) {
+        logContainer.removeChild(items[items.length - 1]);
+      }
+
+      entry.style.opacity = '0';
+      entry.style.transform = 'translateY(-10px)';
+      setTimeout(() => {
+        entry.style.transition = 'all 0.3s ease';
+        entry.style.opacity = '1';
+        entry.style.transform = 'translateY(0)';
+      }, 50);
     }
 
     async loadEffects() {

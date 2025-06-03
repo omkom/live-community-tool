@@ -572,6 +572,12 @@
             if (data.type === 'channel_points_event' && channelPointsAdmin) {
               channelPointsAdmin.handleChannelPointsEvent(data.data);
             }
+            if (data.type === 'effect' && channelPointsAdmin) {
+              channelPointsAdmin.addStreamLog(`Effet déclenché : ${data.value}`);
+            }
+            if (data.type === 'message' && channelPointsAdmin) {
+              channelPointsAdmin.addStreamLog(data.value);
+            }
           } catch (e) {
             // Ignore parsing errors
           }

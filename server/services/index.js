@@ -389,17 +389,15 @@ class ServiceManager extends EventEmitter {
         timestamp: new Date().toISOString()
       };
 
-      this.wsManager.broadcast({ 
-        type: 'effect', 
+      this.wsManager.sendToType({
+        type: 'effect',
         value: data.effect,
-        data: effectData 
-      });
+        data: effectData
+      }, 'overlay');
 
       // Message de confirmation
       setTimeout(() => {
         let message = `${data.user.display_name} a utilisé "${data.reward.title}"`;
-        
-        // Messages spéciaux pour effets quantiques
         const quantumMessages = {
           'quantum_collapse': ' - Réponse instantanée requise !',
           'temporal_rewind': ' - Répète ta dernière phrase !',
@@ -407,16 +405,14 @@ class ServiceManager extends EventEmitter {
           'butterfly_effect': ' - Effet Papillon activé pour 5 minutes !',
           'quantum_consciousness': ' - Citation mystérieuse révélée !'
         };
-
         message += (quantumMessages[data.effect] || ' !');
-        
-        this.wsManager.broadcast({ type: 'message', value: message });
+        this.wsManager.sendToType({ type: 'message', value: message }, 'overlay');
       }, 1500);
     }
 
     // Event pour admin
-    this.wsManager.broadcast({ 
-      type: 'channel_points_event', 
+    this.wsManager.sendToType({
+      type: 'channel_points_event',
       data: {
         reward: data.reward.title,
         user: data.user.display_name,
@@ -426,7 +422,7 @@ class ServiceManager extends EventEmitter {
         timestamp: new Date().toISOString(),
         event_type: 'live'
       }
-    });
+    }, 'admin');
   }
 
   handleChatMessage(data) {

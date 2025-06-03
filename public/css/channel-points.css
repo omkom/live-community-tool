@@ -467,12 +467,6 @@
 
 /* Advanced actions & outputs */
 
-.cp-advanced-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
 
 .cp-quantum-test-controls {
   display: grid;
@@ -481,18 +475,6 @@
   margin-top: 10px;
 }
 
-.cp-output {
-  background: var(--cp-bg);
-  color: var(--cp-text);
-  padding: 10px;
-  border: 1px solid var(--cp-border);
-  border-radius: 4px;
-  margin-top: 10px;
-  max-height: 200px;
-  overflow-y: auto;
-  font-family: monospace;
-  font-size: 0.85rem;
-}
 
 .cp-events-history {
   max-height: 200px;
